@@ -29,52 +29,55 @@ When creating code in Visual Studio you must choose a "target framework" - this 
 
 In particular, GUI libraries and other similar-level frameworks are not standardised, so their ability will depend on the implementation you are using.
 
+Over the past twenty years Microsoft have produced two major CLR implementations: the .NET Framework, and .NET, which was formerly called .NET Core.  The former was a Windows-based implementation; the latter is cross-platform.  The .NET Framework is still under long-term support but will not receive new feature releases.  For clarity, when I say ".NET" I'm referring to the current CLR implementation that was formerly called ".NET Core", and not to CLR implementations in general.
+
 Version numbers can also cause confusion, as the following all have different numbering sequences, some of them relatively close together and some of them radically different:
 
 - the CLI standard
 - the C# language
 - the .NET Framework CLI implementation
-- the .NET Core CLI implementation
+- the .NET or .NET Core CLI implementation
 - the .NET Standard API standard
 
 In general, below, most version number references are to the relevant version of the C# language, but I have tried to always make it clear what a version number relates to.  However, here is an approximate correspondance table, just in case you need it for reference:
 
-| CLI version | C# version    | .NET Framework version | .NET Core version | .NET Standard version |
-| ----------- | ------------- | ---------------------- | ----------------- | --------------------- |
-| 1.0         | 1.0           | 1.0                    | N/A               | N/A                   |
-| 1.1         | 1.1           | 1.1                    | N/A               | N/A                   |
-| 2.0         | 2.0           | 2.0                    | N/A               | N/A                   |
-|             |               | 3.0                    | N/A               | N/A                   |
-|             | 3.0           | 3.5                    | N/A               | N/A                   |
-| 4           | 4.0           | 4.0                    | N/A               | N/A                   |
-|             | 5.0           | 4.5                    | N/A               | 1.0                   |
-|             |               |                        | N/A               | 1.1                   |
-|             |               | 4.5.1                  | N/A               | 1.2                   |
-|             | 6.0           | 4.6                    | N/A               | 1.3                   |
-|             |               | 4.6.1                  | 1.0               | 1.4                   |
-|             | 7.0           | 4.6.2                  | 1.1               |                       |
-|             | 7.1           | 4.7                    | 2.0               |                       |
-|             | 7.2           | 4.7.1                  |                   |                       |
-|             | 7.3           | 4.7.2                  | 2.1               | 2.0                   |
-|             |               |                        | 2.2               |                       |
-|             |               | 4.8                    |                   |                       |
-|             | 8.0           |                        |                   |                       |
-|             |               | N/A                    | 3.0               | 2.1                   |
-|             | 9.0           | N/A                    | 5                 | None as yet           |
+| CLI version | C# version    | .NET Framework version | .NET / .NET Core version | .NET Standard version |
+| ----------- | ------------- | ---------------------- | ------------------------ | --------------------- |
+| 1.0         | 1.0           | 1.0                    | N/A                      | N/A                   |
+| 1.1         | 1.1           | 1.1                    | N/A                      | N/A                   |
+| 2.0         | 2.0           | 2.0                    | N/A                      | N/A                   |
+|             |               | 3.0                    | N/A                      | N/A                   |
+|             | 3.0           | 3.5                    | N/A                      | N/A                   |
+| 4           | 4.0           | 4.0                    | N/A                      | N/A                   |
+|             | 5.0           | 4.5                    | N/A                      | 1.0                   |
+|             |               |                        | N/A                      | 1.1                   |
+|             |               | 4.5.1                  | N/A                      | 1.2                   |
+|             | 6.0           | 4.6                    | N/A                      | 1.3                   |
+|             |               | 4.6.1                  | 1.0                      | 1.4                   |
+|             | 7.0           | 4.6.2                  | 1.1                      |                       |
+|             | 7.1           | 4.7                    | 2.0                      |                       |
+|             | 7.2           | 4.7.1                  |                          |                       |
+|             | 7.3           | 4.7.2                  | 2.1                      | 2.0                   |
+|             |               |                        | 2.2                      |                       |
+|             |               | 4.8                    |                          |                       |
+|             | 8.0           |                        |                          |                       |
+|             |               | N/A                    | 3.0                      | 2.1                   |
+|             | 9.0           | N/A                    | 5                        |                       |
+|             | 10.0          | N/A                    | 6                        |                       |
 
-I've omitted a couple versions of .NET Standard between 1.4 and 2.0 which were implemented by .NET Core from version 1, but not implemented by .NET Framework until version 4.7.2.  Additionally, Microsoft have previously announced that .NET Framework 4.8 will not implement all of .NET Standard 2.1 and that .NET Framework will only receive bug fixes from that point onwards.
+I've omitted a couple versions of .NET Standard between 1.4 and 2.0 which were implemented by .NET Core from version 1, but not implemented by .NET Framework until version 4.7.2.  .NET Framework 4.8 supports some features of .NET Standard 2.1 but will not support any full version after 2.0.
 
 ### Building and running code
 
-Most C# developers use Visual Studio.  In that program, the top level item&mdash;the file that you open to start work&mdash;is the solution, stored in a `.sln` file.  it contains projects, which can be of various kinds.  When you create a new project there are a large number of different C#-related templates to set up projects with different purposes, which set the target framework and set up various different configuration options and boilerplate code, but all of them store the project's details in a `.csproj` file.  Other languages use different file extensions for their project files.  The project file is an XML file that defines what source code and other files belong to the project, how those source files are displayed in the IDE, and more importantly everything related to the build process.  You can modify the build process by hand-editing the `.csproj` file, but this is a relatively rarely-required task.
+Most C# developers use Visual Studio.  In that program, the top level item&mdash;the file that you open to start work&mdash;is the solution, stored in a `.sln` file.  it contains projects, which can be of various kinds.  When you create a new project there are a large number of different C#-related templates to set up projects with different purposes, which set the target framework and set up various different configuration options and boilerplate code, but all of them store the project's details in a `.csproj` file.  Other languages use different file extensions for their project files.  The project file is an XML file that defines what source code and other files belong to the project, how those source files are displayed in the IDE, and more importantly everything related to the build process.  You can modify the build process by hand-editing the `.csproj` file, but this is a relatively rarely-required task.  `.csproj` files have become much simpler in .NET compared to .NET Framework, because a number of things that had to be specified explicitly in .NET Framework are implicit in .NET; most notably, all source code files had to be explicitly listed in a .NET Framework project file, whereas a .NET project assumes all `.cs` files inside the project folder are part of the project.
 
-Visual Studio handles building code itself, but Microsoft also supply command-line build tools which will also parses your `.sln` and `.csproj` files and carries out the required build steps.  For the .NET Framework this is `MSBuild.exe`, and for .NET Core this is done using the `dotnet` utility with the `dotnet msbuild` command.  The latter has preserved command-line-argument compatibility with the former; there is also a `dotnet build` command which does not preserve compatibility but is simpler to use.  If you set up any sort of CI and/or CD pipeline it will probably use MSBuild or `dotnet` to control and run the build process, rather than Visual Studio.  I have noted in the past that the .NET Framework MSBuild parser, particularly for `.sln` files, is more restrictive than the Visual Studio parser and will throw errors on some `.sln` syntax errors than Visual Studio will silently ignore; this can lead to issues where CI builds are broken but developers cannot reproduce the error.  The solution to this is to make a zero-effect change to the solution, to convince Visual Studio that the `.sln` file needs to be written to disk; it will silently correct the syntax error(s) as it does so.
+Visual Studio handles building code itself, but Microsoft also supply command-line build tools which will also parses your `.sln` and `.csproj` files and carries out the required build steps.  For the .NET Framework this was `MSBuild.exe`; for .NET this is done using the `dotnet` utility with the `dotnet msbuild` command.  The latter has preserved command-line-argument compatibility with the former.  There is also a `dotnet build` command which does not preserve compatibility but is simpler to use.  If you set up any sort of CI and/or CD pipeline it will probably use `dotnet` (or MSBuild) to control and run the build process, rather than Visual Studio.  As an aside, I've noticed in the past that the .NET Framework MSBuild parser for `.sln` files is more restrictive than the Visual Studio parser and will throw errors on some `.sln` syntax errors than Visual Studio will silently ignore; this can lead to issues where CI builds are broken but developers cannot reproduce the error.  The solution to this is to make a zero-effect change to the solution, to convince Visual Studio that the `.sln` file needs to be written to disk; it will silently correct the syntax error(s) as it does so.
 
-Although as I said most C# developers use Visual Studio, .NET Core has made it much simpler to develop in C# using other tools, as the `dotnet` command includes tools for carrying out a lot of tasks which were previously hard to do manually such as setting up new projects, building and publishing code.  If you don't want to learn the whole of Visual Studio, it is entirely possible now to use a more Unix-like editor-and-commandline workflow, such as Visual Studio Code and Powershell.  I still would not recommend trying to use .NET Framework without Visual Studio.
+Although as I said most C# developers use Visual Studio, .NET has made it much simpler to develop in C# using other tools, as the `dotnet` command includes tools for carrying out a lot of tasks which were previously hard to do manually: setting up new projects, for example, or building and publishing code.  If you don't want to learn the whole of Visual Studio, it is entirely possible now to use a more Unix-like editor-and-commandline workflow, such as Visual Studio Code and Powershell.  I wouldn't recommend trying to use .NET Framework without Visual Studio.
 
-Both .NET Framework and .NET Core ship the language build tools as part of the framework, so all computers that are capable of running .NET applications are, in theory, capable of building them too.  This includes MSBuild functionality, and the C# compiler itself (`csc.exe` on .NET Framework, `csc.dll` on .NET Core).  As above, this is relatively straightforward to do with .NET Core but is rather more difficult with the .NET Framework, generally requiring a degree of wrestling with command-line options.
+Both .NET and .NET Framework ship the language build tools as part of the framework, so all computers that are capable of running .NET (or .NET Framework) applications are, in theory, capable of building them too.  This includes MSBuild functionality, and the C# compiler itself (`csc.exe` on .NET Framework, `csc.dll` on .NET).  As above, this is relatively straightforward to do with .NET but is rather more difficult with the .NET Framework, generally requiring a lot of wrestling with command-line options.
 
-On .NET Framework, code with an entry point compiles to an `.exe` file, and code without an entry point compiles to `.dll` files.  With .NET Core, all code normally compiles to `.dll` files, and `.dll` files whose code has an entry point can be run using the `dotnet` tool, but there are also publish options which allow you to output directly-executable files, either by including a copy of the VES code within the executable, or by including code to find and run an installed copy of the VES.
+On .NET Framework, code with an entry point compiles to an `.exe` file, and code without an entry point compiles to `.dll` files.  With .NET, all code normally compiles to `.dll` files, and `.dll` files whose code has an entry point can be run using the `dotnet` tool. The project templates for things like command-line programs will generally also configure the build to output directly-executable files.  A .NET `.exe` file will either include a copy of the VES code within the executable, or code to find and run an installed copy of the VES.
 
 ## Basic principles - syntax, types, assemblies and classes
 
@@ -100,7 +103,7 @@ Although C# uses `*` for pointer dereferencing, pointers are only encountered ve
 
 Identifiers are case-sensitive, can contain alphanumeric characters or underscore, and cannot start with a decimal digit.
 
-One of the requirements of the CLS is that languages must provide an escaping system so that a keyword or other reserved word can be used as an identifier; this means that you do not have to worry about what words are reserved in other languages that might want to consume your code.  In C# this is done with the `@` character.  In code, for example, `if` is a keyword, but `@if` is the identifier whose actual name in the compiled metadata will be "if".  In general it is best to avoid identifiers that require `@`.
+One of the requirements of the CLS is that languages must provide an escaping system so that a keyword or other reserved word can be used as an identifier; this means that you do not have to worry about what words are reserved in other languages that might want to consume your code.  In C# this is done with the `@` character.  In code, for example, `if` is a keyword, but `@if` is the identifier whose actual name in the compiled metadata will be "if".  In general it is best to avoid identifiers that require `@`, but you might do for compatibility with other systems.
 
 Since C# 7.0 the identifier `_` has had a special meaning as the "discard variable name" when it has not been declared as anything else.  Although this feature was introduced to the language in such a way that it did not break any existing code which used `_` as a normal identifier, it is advisable not to use it as a normal identifier in new code in order to avoid confusion.  Discard variables are described further below.
 
@@ -108,7 +111,7 @@ Since C# 7.0 the identifier `_` has had a special meaning as the "discard variab
 
 As in Java and C++, C# supports both `/* ... */` block comments and `//` single-line comments.  The latter are more commonly used.
 
-There is also a `///` comment which is similar in concept to `/** ... */` doc-comments in Java.  `///` comments appear before definitions and contain XML in a particular schema.  The compiler can extract the content of these comments at compile-time and write them out to an XML file, which then can be processed by other tools to generate documentation files.  Even if you do not do this, Visual Studio will read the comments and display the documentation in tooltips when you mouse over calling code.  Here's an example of what it looks like:
+There are also `///` and `/** ... */` comments which are similar in concept to `/** ... */` doc-comments in Java.  These comments appear before definitions and contain XML in a particular schema.  The compiler can extract the content of these comments at compile-time and write them out to an XML file, which then can be processed by other tools to generate documentation files.  Even if you do not do this, Visual Studio will read the comments and display the documentation in tooltips when you mouse over calling code.  Here's an example of what it looks like:
 
 ```
 /// <summary>
@@ -129,6 +132,19 @@ class BiscuitStore
 }
 ```
 
+In real-life code these comments usually use `///`, with `/** ... */` being comparatively rare.  If you did come across it, it would look like this:
+
+```
+/**
+ * <summary>
+ * A biscuit storage class
+ * </summary>
+ **/
+class BiscuitStore
+```
+
+The initial `*` on each line is removed, to allow for this style of formatting, but they all must be in line, with the same indent.
+
 #### Garbage collection
 
 C# is a garbage-collected language.  Data that is under the wing of the garbage collector is sometimes referred to as "managed data" or "managed objects".  All objects created from within C# code itself are managed objects, but objects created from external libraries may be "unmanaged objects" and may have to be manually closed or disposed: for example, open file handles or database connections.
@@ -143,7 +159,7 @@ I will explain about garbage collection in more detail later.
 
 All code in C# (and in all CLI languages) belongs to a type, and every expression and declared storage location also has a type.  Each type belongs to a namespace, and has a fully-qualified name which consists of the namespace name, a dot, and the type name.  For example, the `System.IO` namespace contains the `Path` class, whose fully-qualified name is `System.IO.Path`.  Namespaces are lexically hierarchical.
 
-Each source-code file contains a top level `namespace` block, which contains type definitions within it, as follows:
+Traditionally, each source-code file contains a top level `namespace` block, which contains type definitions within it, as follows:
 
 ```
 namespace MyApplication
@@ -155,13 +171,25 @@ namespace MyApplication
 }
 ```
 
-The above fragment defines the class `MyApplication.Program`.  Some of the examples below in this document include the `namespace { ... }` block for completeness; others omit it for conciseness.
+The above fragment defines the class `MyApplication.Program`.  Some of the examples below in this document include the `namespace { ... }` block for completeness; others omit it for conciseness.   From C# 10 onwards, the namespace block is not needed if you only have one namespace in a file, which is nearly always the case.
+
+```
+namespace MyApplication;
+class Program
+{
+    // ...
+}
+```
 
 Within a given namespace, types in that namespace can be referred to by just the name of the type, but types in unrelated namespaces, by default, have to be referred to by their fully-qualified name.  The `using` declaration, within a code file, specifies namespaces to be lexically imported, so that their types do not need to be specified by their fully-qualified names.  Visual Studio normally adds a number of `using` statements to the top of each new code file by default, such as `using System;` and `using System.Linq;`
 
 If namespaces are related - that is, have the same root - then partially-qualified type names can be used.  For example, if a project has the namespaces `MyApplication` and `MyApplication.Helpers`, then within the class `MyApplication.Thing` the class whose fully-qualified name is `MyApplication.Helpers.ThingHelper` can be referred to with the partially-qualified name `Helpers.ThingHelper`, and in the other direction, within the `MyApplication.Helpers.ThingHelper` class the `MyApplication.Thing` class can be referred to as just `Thing`.
 
-Types can be split into "value types" and "reference types", depending on which parameter-passing convention applies to them.  Classes are reference types; the other kinds of type, structs and enums, are both value types.  The built-in numeric types (and the `bool` type) are kinds of struct; although the built-in value types have a defined inheritance hierarchy, user-defined struct and enum types cannot inherit from other types.  Reference type expressions and variables can have the value `null` but value type expressions and variables cannot.
+Types can be split into "value types" and "reference types", depending on which parameter-passing convention applies to them.  Classes are reference types; the other kinds of type, structs and enums, are both value types.  The built-in numeric types (and the `bool` type) are kinds of struct; although the built-in value types have a defined inheritance hierarchy, user-defined struct and enum types cannot inherit from other types.  
+
+Traditionally in C#, one fundamental difference between reference and value types is that reference type expressions and variables can have the value `null` and value type expressions and variables cannot.  In the CLR this is still the case.  However, since C# 2, the language has supported declaring value types as nullable by suffixing the type with a `?` when declaring it: for example, the nullable version of `int` becomes `int?`.  Under the hood this is done by wrapping the value in another struct whose type is (in this example) `Nullable<int>`, and `int?` is shorthand for that type.  For any nullable value type, the `Value` property gives the underlying value cast to a non-nullable type, and the `HasValue` property is `false` if the value is `null` and `true` if not.
+
+Reference types in the CLR are always nullable, but C# 8 introduced the concept of a "nullable context", a section of code where the compiler treats reference types as non-nullable by default unless they are flagged as nullable with the `?` suffix, and can raise an error or a warning (according to the kind of context) if a `null` value is potentially assigned to a non-nullable reference.  Initially this feature had to be deliberately chosen by the developer.  From .NET 6 onwards, this is the default behaviour for new projects, and if you would like the old behaviour you will need to change your project properties.
 
 Types can be nested, to some extent.  Any kind of type can be nested inside a class or a struct, but not inside an enum.  The full name of a nested type incorporates the name of the types it is nested inside: for example, if a class called `Thing` contained a nested type called `Egg`, the full name of the latter is `Thing.Egg` and the fully-qualified name of it is `Thing.Egg` prefixed by `Thing`'s namespace.
 
@@ -187,15 +215,17 @@ Each built-in type which can be instantiated has a fully-qualified name (which i
 
 Types in the above table are value types unless otherwise noted.
 
-Some numeric types have "constant suffixes" listed in the table above, which can be used to specify that a constant, in code, is of that specific type.  Unsuffixed numeric constants with a decimal point default to `double`; without a decimal point, they default to the first integral type of `int` or larger (sorted in order of maximum value) which will accommodate the value.  Note that this means that a constant that is larger than the maximum `int` value, but smaller than twice the maximum `int` value, will be treated as `uint`.  The suffixes are case-insensitive.
+Some numeric types have "constant suffixes" listed in the table above, which can be used to specify that a numeric constant, in code, is of that specific type.  Unsuffixed numeric constants with a decimal point default to `double`; without a decimal point, they default to the first integral type of `int` or larger (sorted in order of maximum value) which will accommodate the value.  Note that this means that a constant that is larger than the maximum `int` value, but smaller than twice the maximum `int` value, will be treated as `uint`.  The suffixes are case-insensitive.
 
-Structs which do not contain any references, and other value types, are also referred to as "unmanaged types" as they are not subject to garbage collection themselves, and do not contain any data which needs to be tracked by the garbage collector.
+All of the built-in numeric types have `MinValue` and `MaxValue` constant fields.  The floating-point types also have `Epsilon` (the smallest value greater than zero that can be represented), `NaN`, `NegativeInfinity` and `PositiveInfinity` fields.
+
+Structs which do not contain any references, and other value types, are also referred to as "unmanaged types" as they are not subject to garbage collection themselves, and do not contain any data which needs to be tracked by the garbage collector.  Don't confuse this with "unmanaged objects", which are objects allocated (or part-allocated) by external code and which require the developer to provide additional garbage-collection code: see below for the "`IDisposable` pattern".
 
 Other kinds of types not listed in the above table are interfaces and delegates, both of which are reference types.  Interfaces will be familiar if you have used other object-oriented languages; by convention the names of interface types begin with a capital I.  Delegates are effectively a managed equivalent of a function pointer.
 
 #### Inheritance and implementation
 
-All user-defined classes and value types in C# inherit from exactly one other type, referred to as its "base class" or "superclass".  A type that inherits from a given type can be referred to as a "derived type".  All user-defined structs and enums inherit from the built-in type `ValueType`; this cannot be changed.  Classes can inherit from any accessible class that is not declared as `sealed`; if the programmer does not explicitly specify a superclass, the class will inherit from the built-in `object` class.  Interfaces can inherit from other interfaces, but this is optional.
+All user-defined classes and all value types in C# inherit from exactly one other type, referred to as its "base class" or "superclass".  A type that inherits from a given type can be referred to as a "derived type".  All user-defined structs and enums inherit from the built-in type `ValueType`; this cannot be changed.  Classes can inherit from any accessible class that is not declared as `sealed`; if the programmer does not explicitly specify a superclass, the class will inherit from the built-in `object` class.  Interfaces can inherit from other interfaces, but this is optional.
 
 Classes and structs may implement any number of interfaces.  A class or struct which inherits a given interface is also considered to be a derived type of the interface.
 
@@ -227,13 +257,43 @@ It's normal and idiomatic for classes in C# to implement interfaces.  However, s
 
 An array of any type can be created by adding square brackets to the type name.  For creating multi-level arrays, C# distinguishes between *multidimensional arrays* which are a single multidimensional data structure, and *jagged arrays*, which consists of an a one-dimensional array whose elements are themselves arrays.
 
+```
+// One-dimensional array
+int a[];
+
+// Two-dimensional array
+int b[,];
+
+// Two-level jagged array
+int c[][];
+```
+
 Arrays are reference types, derived from `System.Array`, and because of this jagged arrays do behave differently to multidimensional arrays.  With the former, you can only guarantee that the "first dimension" of the array actually exists.  If you declare an array of arrays of `int` values, for example, without initialising any data, you will initially create a one-dimensional array of `null` values, where each "slot" in the array could potentially store a reference to an array of `int`s but currently stores nothing.   By contrast, if you create a multidimensional array of `int` values, each "slot" in every dimension is guaranteed to have a value because `int` is a value type.  I will give examples of array initialisation and the differences between the syntaxes later on, when we go into arrays and other complex data structures in more detail.
 
 The elements of arrays are accessed using the "indexer access operator", `array[i]`.  This operator is also used to access elements of other types by numbered or named index, such as lists or dictionaries.
 
+Arrays are created with the `new` operator, and must have their size specified at creation time.  They can also be initialised at creation time; if you initialise them, their size is implied from the initialisation data, and the type can be implied too.
+
+```
+int a[] = new int[5];
+int b[] = new int[] { 2, 4, 6, 8, 10};
+
+int c[,] = new int [5, 2];
+int d[,] = new int[,] { {2, 3}, {4, 9}, {6, 12}, {8, 15}, {10, 18} };
+
+int e[][] = new int[5][]; // Note that the length of the second level is not specified.
+int f[][] = new int[][] { new [] {2, 3}, new [] {4, 9, 5}, new [] {8, 15}, new [] {10, 18, 25} };
+```
+
+Jagged arrays also have a shorthand initialiser form which omits the outermost `new` operator.
+
+```
+int f[][] = { new [] {2, 3}, new [] {4, 9, 5}, new [] {8, 15}, new [] {10, 18, 25} };
+```
+
 #### Generic types
 
-Reference types can be "generic types", that is, types that contain references to other undefined types.  Such types are referred to using type parameters in angle brackets; a commonly-used example is `System.Collections.Generic.List<T>`.  When a variable of the generic type is declared, or when an instance of the type is instantiated, a type has to be provided for all type parameters; for example `List<string>`.  When a new generic type is defined, various restrictions can be applied to its type parameters if necessary.  These are introduced by the `where` keyword when defining the type; here are a couple of examples.
+Reference types can be "generic types", that is, types that contain references to other undefined types, known as "type parameters".  Such types are referred to using type parameters in angle brackets; a commonly-used example is `System.Collections.Generic.List<T>`.  When a variable of the generic type is declared, or when an instance of the type is instantiated, a type has to be provided for all type parameters; for example `List<string>`.  When a new generic type is defined, various restrictions can be applied to its type parameters if necessary.  These are introduced by the `where` keyword when defining the type; here are a couple of examples.
 
 ```
 class Nest<T> where T : Egg // T must be an Egg or a class derived from it.
@@ -245,11 +305,11 @@ class Nest<T> where T : class // T must be a class type
 
 The generic type `Nullable<T>` is used to declare a boxed version of a value type that can also hold a `null` value.  The keyword for synonyms for value types have `?`-suffixed versions that refer to this type.  For example, `int?` is a synonym for `Nullable<int>`.
 
-The type parameters to generic types may be covariant or contravariant.
+When declaring method parameters and return types, type parameters can be specified as covariant or contravariant.  See below for more information.
 
 #### Assemblies
 
-In any CLI language, the executable code is stored in one or more "assemblies"; the code in an assembly can also call code in other assemblies, called "referenced assemblies".  References are resolved at both compile time and run time.  Code can use "reflection" to interrogate the VES at runtime to determine which assemblies have been loaded, what types those assemblies contain, and to read all of the metadata associated with those types and the compiled code that implements them.  The VES does not have to load referenced assemblies, however, until they are required, so this sort of reflection-based interrogation does not necessarily return details about all referenced assemblies.
+In any CLI language, the executable code is stored in one or more "assemblies"; the code in an assembly can also call code in other assemblies, called "referenced assemblies".  References are resolved at both compile time and run time.  Code can use "reflection" to interrogate the VES at runtime to determine which assemblies have been loaded, what types those assemblies contain, and to read all of the metadata associated with those types and the compiled code that implements them.  The VES does not have to load referenced assemblies, however, until they are required, so this sort of reflection-based interrogation does not necessarily return details about all assemblies referenced by the running assembly.
 
 Each assembly consists of at least one "module file" which contains code, and can also include additional module files or resource files.  Assemblies can be "strong-named", which means they are crytographically signed, but this is optional.
 
@@ -266,7 +326,7 @@ Each assembly consists of at least one "module file" which contains code, and ca
 - The name of each source code file should be the same as the name of the type it defines.
 - The above two conventions are modified slightly if a class consists of a mixture of hand-written and generated code, or if classes are very tightly coupled.
 
-It is possible to split a class between multiple files using the `partial` keyword.  Because of this, if a class consists of a mixture of hand-written and generated code, it is common to have two classes, one for each kind of code.  This is a common pattern seen in Windows Forms development, for example: a class called `MainForm` will be split across the files `MainForm.cs` and `MainForm.designer.cs`, the latter containing the Visual Studio-generated form layout and event binding code, and the former containing the developer-written event handler methods and any other code.
+It is possible to split a class between multiple files using the `partial` keyword.  Because of this, if a class consists of a mixture of hand-written and generated code, it is common to have two files, one for each kind of code.  This is a common pattern seen in Windows Forms development, for example: a class called `MainForm` will be split across the files `MainForm.cs` and `MainForm.designer.cs`, the latter containing the Visual Studio-generated form layout and event binding code, and the former containing the developer-written event handler methods and any other code.
 
 It can also be acceptable to include more than one class in a file if the two are tightly coupled.  For example, there is a standard interface `IComparer<T>` which can define a class to be used to compare the lexicographical ordering of two instances of another class.  If you had defined a `Thing` class, and wanted to also define a `ThingComparer` class that implemented `IComparer<Thing>`, you may consider it acceptable to put them in the same file because of their tightly-coupled nature.  Similarly, if you define an enum type purely to use it as the parameter type of a single method in a single class, you may want to define it as a non-nested type in the same file as the class, or you may want to define it as a nested type within the class.
 
@@ -283,11 +343,11 @@ A class type contains "members", each member being one of the following:
 
 *Methods* are where the majority of code goes; they are functions attached to classes.  Each method has a return type (which can be `void` if the method returns nothing) and a parameter list, which can be empty.  Method names can be overloaded, by defining multiple methods with the same name but different parameter types.  Overloaded methods do not have to have the same return type, but in C# (like Java) it is not possible to have method overloads that *only* differ by return type.
 
-Methods may have generic type, even if their containing class is not generic.
+Methods may have generic type, even if their containing class is not generic.  Method parameters may have contravariant generic types, indicated by putting the keyword `in` before the type parameter, and method return types may have covariant generic types, indicated with the `out` parameter.
 
 A lambda method is a kind of anonymous method that can be defined within an expression inside a class.  They are defined using the `=>` operator; the syntax for this will be discussed later.  Lambda methods were introduced in C# v3.
 
-*Properties* are, at the CIL level, just a method or a pair of methods linked by an identifier, which can then be called using the same syntax as used to access a field - and in early versions of C# that is all they were.  In C# version 3 and above the compiler can automatically generate code that, in early versions, had to be added as boilerplate by the developer, and version 7.0 introduced new syntax extensions that enable properties to be defined as lambda methods.
+*Properties* are, at the CIL level, just a method or a pair of methods linked by an identifier, which can then be called using the same syntax as used to access a field - and in early versions of C# that is all they were.  In C# version 3 and above the compiler can automatically generate code that, in early versions, had to be added as boilerplate by the developer; version 7.0 introduced new syntax extensions that enable properties to be defined as lambda methods.
 
 Each class has one or more "constructors", which are methods that are called when instantiating the class.  If the programmer does not define any constructors, the compiler implicitly inserts a constructor with no parameters.
 
@@ -299,14 +359,14 @@ Every type and member of a type has an access level, whether specified explicitl
 
 The allowed access modifiers (and combinations) and their meaning are:
 
-| Modifier(s)          | Allowed at top level | Meaning                                                                               |
-| -------------------- | -------------------- | ------------------------------------------------------------------------------------- |
-| `public`             | Yes                  | Unrestricted access from any code.                                                    |
-| `protected`          | No                   | Can only be accessed from the same class or derived classes.                          |
-| `internal`           | Yes                  | Can only be accessed from the same assembly or specific assemblies.                   |
-| `protected internal` | No                   | Equivalent to `protected` OR `internal`.                                              |
-| `private`            | No                   | Can only be accessed from the same type.                                              |
-| `private protected`  | No                   | Can only be accessed from the same type, or derived classes within the same assembly. |
+| Modifier(s)          | Allowed at top level | Meaning                                                                                |
+| -------------------- | -------------------- | -------------------------------------------------------------------------------------- |
+| `public`             | Yes                  | Unrestricted access from any code.                                                     |
+| `protected`          | No                   | Can only be accessed from the same class or derived classes.                           |
+| `internal`           | Yes                  | Can only be accessed from the same assembly and potentially specific other assemblies. |
+| `protected internal` | No                   | Equivalent to `protected` OR `internal`.                                               |
+| `private`            | No                   | Can only be accessed from the same type.                                               |
+| `private protected`  | No                   | Can only be accessed from the same type, or derived classes within the same assembly.  |
 
 The `private protected` modifier combination was only introduced in C# v7.2, in late 2017.
 
@@ -318,9 +378,9 @@ The allowable access levels of the members of a struct are `public`, `internal` 
 
 A type member's access level cannot have wider access than the access level of the containing type.  In other words, if a type is `internal`, none of its members can be `public`.  Similarly, if a method is `public` its parameters' types must also all be `public`.
 
-You cannot modify the access level of the values of enum types or the members of interfaces.  Officially they always default to `public`, but in practice they default to the access level of the containing type (which has to be either `public` or `internal`) because of the above rule.
+You cannot modify the access level of the values of enum types or the members of interfaces.  Officially they always default to `public`, but in practice they effectively default to the access level of the containing type (which has to be either `public` or `internal`).
 
-Access levels are checked at both compile time and run time, but do not guarantee secrecy.  Under default circumstances, if a piece of code has a reference to an object, it can examine any member of that object and call any method on it, whatever the access level, using reflection techniques.  This can be restricted using the Code Access Security feature of .NET Framework, but this is rarely used and is not available in .NET Core.
+Access levels are checked at both compile time and run time, but do not guarantee secrecy.  Under default circumstances, if a piece of code has a reference to an object, it can examine any member of that object and call any method on it, whatever the access level, using reflection techniques.  This can be restricted using the Code Access Security feature of .NET Framework, but this is rarely used and is not available in .NET (or .NET Core).
 
 As I said in the table above, `internal` types or members can only be accessed from the same assembly or from specific assemblies (notwithstanding that they can also be accessed from any code using reflection as per the previous paragraph, too).  It is possible to add code to an assembly so that other specifically-listed assemblies can access all of the internal code within the first assembly.  If the first assembly is strong-named, the accessing assemblies also need to be strong-named.
 
@@ -357,14 +417,14 @@ namespace MyExample
 
 Both of the fields in the above example will be `private` as they have no access modifier.
 
-When declaring any variable or field, you can use the `var` keyword instead of a type if the compiler can deduce the type of the field from the context, such as from the type of the initialisation expression.  Some developers would consider it bad form to use `var` if the type is not immediately human-readable&mdash;if, for example, the initialisation expression is a method call.  If `var` is used to declare a non-initialised field, the compiler will raise an error as there is no context to infer type from.
+When declaring any variable or field, you can use the `var` keyword instead of a type if the compiler can deduce the type from the initialisation expression.  Some developers would consider it bad form to use `var` if the type is not immediately human-readable&mdash;if, for example, the initialisation expression is a method call.  If `var` is used to declare a non-initialised field, the compiler will raise an error as there is no context to infer type from.
 
 ```
 namespace MyExample
 {
     public class Egg
     {
-        var _length = 0d;  // _length is of type double, due to the constant
+        var _length = 0d;  // _length is of type double, due to the constant initialiser
         var _width;        // syntax error - there is no way to infer the type of _width
     }
 }
@@ -445,9 +505,9 @@ From C# 9.0 onwards, you can omit the type name when calling the constructor, if
 
 ```
 Egg egg1 = new();        // These are both equivalent to the above in C# 9.0
-Egg egg2 = new(6d, 4f);  // but fail in older versions
+Egg egg2 = new(6d, 4f);  // but fail in older versions.
 
-var egg3 = new();        // This is a syntax error
+var egg3 = new();        // This is a syntax error, because we haven't specified a type at all.
 ```
 
 There is no implicit inheritance between constructors.  The only constructors available in a class are those defined in the class itself, not those defined in its base classes.  However, when you call a constructor, it always calls a constructor of the immediate superclass first, before it executes.  This constructor will then call its superclass constructor, and so on.  The end effect is that a chain of constructors will execute, starting with the constructor of `object` and then executing the constructors of derived types in order, until the constructor of the specific type is executed last.
@@ -457,6 +517,8 @@ By default, each constructor calls its superclass's parameterless constructor.  
 ```
 namespace MyExample
 {
+    // This class does not have a parameterless constructor, because we
+    // have declared one with parameters.
     public class Egg
     {
         double _length;
@@ -471,7 +533,7 @@ namespace MyExample
 
     public class ChocolateEgg : Egg
     {
-        // This code will cause an error, because it creates an implicit call to a
+        // This code will not compile, because it creates an implicit call to the
         // nonexistent parameterless constructor.
         public ChocolateEgg()
         {
@@ -581,11 +643,11 @@ namespace MyExample
 
 Variables declared inside a method are *local variables*.  They are private to the method, cannot be accessed outside the method and cannot retain their value between invocations&mdash;there is no direct equivalent in C# to a C static local variable.  By convention local variable names begin with a lower-case letter.
 
-Within a method, the special keyword `this` is a reference to the current instance of the class.  This can be used to distinguish within a method or constructor to distinguish between class fields and local variables which have the same names.
+Within a method, the special keyword `this` is a reference to the current instance of the class.  This can be used to distinguish within a method or constructor to distinguish between class fields and local variables or method parameters which have the same names: if `thing` is the name of both a class field or property and a method parameter or local variable, then unqualified `thing` is the local variable and `this.thing` is the class field.
 
-Methods are called using the `.` operator.  In method calls, the parameters are enclosed in brackets.  One common idiomatic C# style is "fluent code", in which a method or methods all return `this`, or an object representing some form of transformation of the current object.  This enables you to chain a sequence of method calls together in a single statement, without declaring variables to store intermediate results.  This style of programming is often used in LINQ code which is explained below under "Iteration".
+Methods are called using the `.` operator.  In method calls, the parameters are enclosed in brackets.  One common idiomatic C# style is "fluent code", in which a method or methods all return either `this`, or an object representing some form of transformation of `this`.  This enables you to chain a sequence of method calls together in a single statement, without declaring variables to store intermediate results.  This style of programming is often used in LINQ code, explained below under "Iteration".
 
-Control is allowed to drop out of the end of a `void` method, or you can return from elsewhere in the method body with a `return;` statement.  However, methods with other return types must return with a `return` statement that includes an expression to compute the return value.  If you create a method that has a return type, and a possible code path through the method that does not return a value, you will get a compile-time error.
+Control is allowed to drop out of the end of a `void` method, or you can return from an earlier place in the method body with a `return;` statement.  However, methods with other return types must return with a `return` statement that includes an expression to provide the return value.  If you create a method that has a return type, and a possible code path through the method that does not return a value, you will get a compile-time error.
 
 Like a constructor, the parameter list of a named method can contain any reasonable number of parameters, but must specify the type of each.
 
@@ -593,10 +655,11 @@ Like a constructor, the parameter list of a named method can contain any reasona
 public int ExampleMethod(int x, int y, double twist)
 {
     // ...
+    return x;
 }
 ```
 
-Methods can be overloaded, by specifying different parameter types.  The names of the parameters and the return type of the method do not count as differences as far as method overloading is concerned.
+Methods can be overloaded, by specifying methods that share a name but have different parameter types.  The names of the parameters and the return type of the method do not count as differences as far as method overloading is concerned.  However, if a method is overloaded with different parameter types, the overloads may have different return types.
 
 You can specify default values for some "optional" parameters, so long as all following parameters also have default values.  When you call a method with multiple optional parameters, you must specify all parameters up to and including the last parameter you want to specify
 
@@ -612,7 +675,7 @@ public int ExampleMethod(int x, int y = 0, double twist) { ... }
 // ^ syntax error
 ```
 
-Note that when you call a method using the default values for optional parameters, the values of the optional parameters are resolved and hard-coded into your CIL bytecode, at the calling location, at compile time.  Because of this, if you publish an API that contains public methods with optional parameters, it is a bad idea to change the parameters' default values: it requires all calling code to be recompiled for the change to take effect.
+Note that when you call a method using the default values for optional parameters, the values of the optional parameters are resolved and hard-coded into your CIL bytecode, at the calling location, at compile time.  Because of this, if you publish an API that contains public methods with optional parameters, it is a bad idea to change the parameters' default values: it requires the calling code to be recompiled for the change to take effect, not the code where the change was made.
 
 Methods can have genuinely variable numbers of parameters, by making the final parameter an array type and declaring it using the `params` keyword.  If, say you declare the following method:
 
@@ -624,6 +687,8 @@ then it can be called with any number of integer parameters, each of which can b
 
 Obviously, with the above where we specify the parameter as an array of a value type, all of the parameters have to be of the same type.  A class or interface parameter can enable parameters of any derived type to be passed, but the only way to have a variable number of parameters of any type is by declaring the `params` parameter to be of type `object[]`.  You can use type-sniffing later to confirm the types of the variable parameters; this is described under "Reflection" below.
 
+Beware that if you have an overloaded method and one of those overloads has a `params` parameter, particularly `params object[]`, then the compiler's overload resolution may produce results you didn't expect.
+
 The method-calling examples above show methods called using positional parameters; this is the most common calling code convention.  Methods can also be called using named parameters (with the parameters in any order) or by a mixture of named and positional parameters.  In the latter case, the supplied positional parameters must come first, starting with the first parameter to the method, and within the range of positional parameters supplied, none can be skipped.
 
 ```
@@ -631,7 +696,7 @@ public int ExampleMethod(int x, int y, double twist) { ... }
 
 // can be called as ExampleMethod(1, 2, 7d) with fully positional parameters
 // or as ExampleMethod(twist: 7d, x: 1, y: 2) with fully named parameters (they can be in any order)
-// or as ExampleMethod(1, twist: 7d, y: 2) with a mixture of positional and named parameters
+// or as ExampleMethod(1, twist: 7d, y: 2) with a mixture of positional and named parameters, the latter in any order
 // but *not* as ExampleMethod(twist: 7d, 1, 2) or as ExampleMethod(1, 7d, y: 2)
 ```
 
@@ -680,52 +745,54 @@ Like `ref`, `out` must be specified both in the method declaration and at the ca
 
 Reference types can also be passed by reference, instead of passing the reference by value.  This is only really relevant in situations where a reference type parameter is reassigned.  Strictly speaking assignment is the only operation that can change the value of the reference that is stored in a reference type variable, as opposed to changing the fields and properties of the object the reference is to.  Passing a reference type by reference is most useful when dealing with string parameters.  `string` objects are an immutable reference type, so "changes to a string" actually create a new string object.  Because of this, if a developer is unfamiliar with C#, it is easy to write "string modification" code in which the modifications are not actually visible to the caller.  Strings and their specific behaviour are discussed further below.
 
-Whether a parameter is passed by reference or value does not count as a difference for purposes of method overloading.  In other words, a class cannot have two methods with the same name, the same parameter type list, but have one method pass its parameters by value and the other by reference; the same applies to `in` and `out` parameters.  The following code examples will both give compilation errors:
+Passing parameters by value or by reference counts as a difference for method overloading, but passing parameters by reference in different ways does not.  In other words, this example works:
 
 ```
 public class Example
 {
-    public void DoStuff(int a) { ... }
+    public void DoStuff(int a) { }
 
-    public void DoStuff(ref int r) { ... }
+    public void DoStuff(ref int a) { }
 }
 ```
+
+but this example will not compile:
 
 ```
 public class Example
 {
-    public string DoThings(in int x) { ... }
+    public void DoThings(in int x) { }
 
-    public string DoThings(out int y) { ... }
+    public void DoThings(out int y) { }
 }
 ```
 
-If you are calling a method with an out parameter, but you do not need to set it beforehand or use its result afterwards, then since C# 7.0 you can use a *discard variable* as the name of the variable in your call.  The discard variable name is a single underscore.
+If you are calling a method with an out parameter, but you do not need to set it beforehand or use its result afterwards, then since C# 7.0 you can use a *discard variable* as the name of the variable in your call.  As we mentioned, the discard variable name is a single underscore.
 
 For example, one common pattern for converting a number to a string is the `int.TryParse()` method.  It takes two parameters: the first is a string, and the second is an `out int` parameter.  The normal way to call it is as follows:
 
 ```
 string str = "83";
 int x;
-bool success = int.TryParse(str, out x); // success will be true, x will be 83
+bool success = int.TryParse(str, out x); // success will be true, x will be 83.
 str = "some words";
-success = int.TryParse(str, out x); // success will be false, x will be unmodified
+success = int.TryParse(str, out x); // success will be false, x will be unmodified.
 ```
 
-However, if you just want to find out whether or not the string is a valid number or not, but do not care what its value actually is, you could use a discard variable for the out parameter, like so:
+However, if you just want to find out whether or not the string is a valid number, but do not care about its actual value, you could use a discard variable for the out parameter, like this:
 
 ```
 string str = "37";
-bool success = int.TryParse(str, out _);
+bool success = int.TryParse(str, out _); // success will be true.
 ```
 
-Note that you do not declare `_`&mdash;indeed, this only works if `_` has not been declared as a variable (or anything else).
+Note that you do not declare `_`&mdash;indeed, this only works if `_` has not been declared as a variable (or anything else).  For compatibility with earlier code, if you declare `_` then it is a regular variable and not the discard variable.
 
 Various other modifiers can be applied to methods, but I will describe those in full later, after introducing the relevant concepts.
 
 #### Properties
 
-A property has a type and a name, and essentially (at the CLI level, and in C# v1) consists of an optional `get` method and an optional `set` method.  It is accessed like a field; access that would read from a field instead calls the `get` method, and access that would write to a field instead calls the `set` method.  The `get` method has no parameters and its return type matches the type of the property; the `set` method has one parameter, named `value`, which also matches the type of the property and has return type `void`; neither method has to have a method signature declared in the usual way.  By convention, property names begin with a capital letter.  Properties that only have a `get` method are read-only; properties that only have a `set` method, which are much rarer, are write-only.
+A property has a type and a name, and essentially (at the CLI level, and in C# v1) consists of an optional `get` method and an optional `set` method.  It is accessed like a field; access that would read from a field instead calls the `get` method, and access that would write to a field calls the `set` method.  The `get` method has no parameters and its return type matches the type of the property; the `set` method returns `void` and has one parameter, named `value`, which also matches the type of the property.  Neither method has to have a method signature declared in the usual way.  By convention, property names begin with a capital letter whatever their access level.  Properties that only have a `get` method are read-only; properties that only have a `set` method, which are much rarer, are write-only.
 
 Originally in C#, that was all there was to say about properties; actually *using* properties required the developer to insert boilerplate "backing fields" and methods.  You still might see this style of C# code in the wild:
 
@@ -753,7 +820,7 @@ public class Thing
 }
 ```
 
-The above will compile to very similar CIL code to the previous example, but the backing field is now anonymous, and inaccesible to other code without going through the property itself.  This is referred to as an *auto-implemented property*.  Because the backing field is inaccessible, you can't have a property that is only half auto-implemented.  If one of the methods is auto-implemented, the other must be too.  The main impact of this is that auto-implemented properties must be read-write.
+The above will compile to very similar CIL code to the previous example, but the backing field is now anonymous, and inaccesible to other code without going through the property itself.  This is referred to as an *auto-implemented property*.  Because the backing field is inaccessible, you can't have a property that is only half auto-implemented: if one of the methods is auto-implemented, the other must be too.  The main impact of this is that auto-implemented properties must technically be read-write, although there are limitations described below that can be used to create immutable auto-implemented properties.
 
 Properties can potentially be more complex than this, and can potentially include any sort of logic in their get and set methods, as in this example:
 
@@ -776,7 +843,7 @@ public class Thing
 
 In this example, `Theft` and `Murder` are both straightforward auto-implemented Boolean properties; `Illegality` is a read-only property that will be `true` if either theft or murder have occurred.
 
-Bear in mind, when creating a property that has complex logic, that it is probably a bad idea to create a property that does not behave in an intuitive and straightforward way to a developer who has not seen its implementation.  Particularly, you should generally be able to expect that if you store a value or object in a read-write property, then retrieve its value, you will (barring external events) get the same value or object back again.
+Bear in mind, when creating a property that has complex logic, that it is probably a bad idea to create a property that does not behave in an intuitive and straightforward way to a developer who hasn't seen its implementation.  Particularly, you should generally be able to expect that if you store a value or object in a read-write property, then retrieve its value, you will (barring external events) get the same value or object back again.
 
 From C# v6, you have been able to implement read-only properties as lambda expressions.  This enables you to rewrite the previous example in the following form, which does the same thing but is somewhat more terse:
 
@@ -844,6 +911,42 @@ theThing.Theft = true;
 ```
 
 Where the constructor is parameterless, the constructor parentheses can be omitted when using brace initialiser syntax.  The above could also be written `Thing theThing = new Thing { Theft = true };`
+
+Since C# 6, you can also set the default value of an auto-implemented property when it is declared:
+
+```
+public class Thing
+{
+    public bool Theft { get; set; } = false;
+}
+
+#### Immutable properties
+
+I said above that auto-implemented properties are all technically read-write.  However, you can create almost-immutable properties by only declaring an auto-implemented `get` method:
+
+```
+public class Thing
+{
+    public bool Theft { get; }
+
+    public Thing(bool theft) { Thing = theft; }
+}
+```
+
+The compiler will still create a private set method, but will only allow it to be called inside the type's constructor as shown in the example.
+
+Since C# 9, you can also create immutable properties using an `init` method, like this:
+
+```
+public class Thing
+{
+    public bool Theft { get; init; }
+
+    public Thing(bool theft) { Thing = theft; }
+}
+```
+
+The main difference between this and the previous example is that properties with `init` can be set at declaration.  `public bool Theft { get; init; } = false;` is legal code whereas `public bool Theft { get; } = false;` is not.
 
 #### Hidden, virtual and overridden methods and properties
 

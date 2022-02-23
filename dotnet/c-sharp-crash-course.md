@@ -219,6 +219,8 @@ Some numeric types have "constant suffixes" listed in the table above, which can
 
 All of the built-in numeric types have `MinValue` and `MaxValue` constant fields.  The floating-point types also have `Epsilon` (the smallest value greater than zero that can be represented), `NaN`, `NegativeInfinity` and `PositiveInfinity` fields.
 
+The `string` type is immutable, and all "string manipulation" code actually returns a new string.  There is more information on string manipulation below.
+
 Structs which do not contain any references, and other value types, are also referred to as "unmanaged types" as they are not subject to garbage collection themselves, and do not contain any data which needs to be tracked by the garbage collector.  Don't confuse this with "unmanaged objects", which are objects allocated (or part-allocated) by external code and which require the developer to provide additional garbage-collection code: see below for the "`IDisposable` pattern".
 
 Other kinds of types not listed in the above table are interfaces and delegates, both of which are reference types.  Interfaces will be familiar if you have used other object-oriented languages; by convention the names of interface types begin with a capital I.  Delegates are effectively a managed equivalent of a function pointer.
@@ -255,7 +257,7 @@ It's normal and idiomatic for classes in C# to implement interfaces.  However, s
 
 #### Arrays
 
-An array of any type can be created by adding square brackets to the type name.  For creating multi-level arrays, C# distinguishes between *multidimensional arrays* which are a single multidimensional data structure, and *jagged arrays*, which consists of an a one-dimensional array whose elements are themselves arrays.
+An array of any type can be created by adding square brackets to the type name.  For creating multi-level arrays, C# distinguishes between *multidimensional arrays* which are a single multidimensional data structure, and *jagged arrays*, which consist of an a one-dimensional array whose elements are themselves arrays.
 
 ```
 // One-dimensional array
@@ -268,7 +270,7 @@ int b[,];
 int c[][];
 ```
 
-Arrays are reference types, derived from `System.Array`, and because of this jagged arrays do behave differently to multidimensional arrays.  With the former, you can only guarantee that the "first dimension" of the array actually exists.  If you declare an array of arrays of `int` values, for example, without initialising any data, you will initially create a one-dimensional array of `null` values, where each "slot" in the array could potentially store a reference to an array of `int`s but currently stores nothing.   By contrast, if you create a multidimensional array of `int` values, each "slot" in every dimension is guaranteed to have a value because `int` is a value type.  I will give examples of array initialisation and the differences between the syntaxes later on, when we go into arrays and other complex data structures in more detail.
+Arrays are reference types, derived from `System.Array`, and because of this jagged arrays do behave differently to multidimensional arrays.  With the former, you can only guarantee that the "first dimension" of the array actually exists.  If you declare an array of arrays of `int` values, for example, without initialising any data, you will initially create a one-dimensional array of `null` values, where each "slot" in the array could potentially store a reference to an array of `int`s but currently stores nothing.   By contrast, if you create a multidimensional array of `int` values, each "slot" in every dimension is guaranteed to have a value because `int` is a value type.
 
 The elements of arrays are accessed using the "indexer access operator", `array[i]`.  This operator is also used to access elements of other types by numbered or named index, such as lists or dictionaries.
 
@@ -302,8 +304,6 @@ class Nest<T> where T : Egg // T must be an Egg or a class derived from it.
 ```
 class Nest<T> where T : class // T must be a class type
 ```
-
-The generic type `Nullable<T>` is used to declare a boxed version of a value type that can also hold a `null` value.  The keyword for synonyms for value types have `?`-suffixed versions that refer to this type.  For example, `int?` is a synonym for `Nullable<int>`.
 
 When declaring method parameters and return types, type parameters can be specified as covariant or contravariant.  See below for more information.
 
@@ -510,9 +510,9 @@ Egg egg2 = new(6d, 4f);  // but fail in older versions.
 var egg3 = new();        // This is a syntax error, because we haven't specified a type at all.
 ```
 
-There is no implicit inheritance between constructors.  The only constructors available in a class are those defined in the class itself, not those defined in its base classes.  However, when you call a constructor, it always calls a constructor of the immediate superclass first, before it executes.  This constructor will then call its superclass constructor, and so on.  The end effect is that a chain of constructors will execute, starting with the constructor of `object` and then executing the constructors of derived types in order, until the constructor of the specific type is executed last.
+A class's constructors are not inherited from its ancestors.  The only constructors available for a class are those defined in the class itself (or the parameterless constructor if there are none defined), not those defined in its base classes.  However, when you call a constructor, it always calls a constructor of the immediate superclass first, before it executes.  This constructor will then call its superclass constructor before it executes, and so on.  The end effect is that a chain of constructors will execute, starting with the constructor of `object` (which is parameterless) and then executing the constructors of derived types in order, until the constructor of the specific type is executed last.
 
-By default, each constructor calls its superclass's parameterless constructor.  Because of this, the following code is not allowed:
+By default, each constructor calls its superclass's parameterless constructor, with an implicit call inserted by the compiler.  However, this leads to a compilation error if the superclass does not have a parameterless constructor.  In other words, the following code is not allowed:
 
 ```
 namespace MyExample
@@ -534,16 +534,13 @@ namespace MyExample
     public class ChocolateEgg : Egg
     {
         // This code will not compile, because it creates an implicit call to the
-        // nonexistent parameterless constructor.
-        public ChocolateEgg()
-        {
-
-        }
+        // nonexistent parameterless Egg constructor.
+        public ChocolateEgg() { }
     }
 }
 ```
 
-Both of these situations can be resolved by specifying that the derived class's constructor(s) should call a specific constructor in the immediate superclass, using the `base` keyword.  This is required if the superclass has no parameterless constructor.
+However, you can specify that the derived class's constructor(s) should call a parameterised constructor in the immediate superclass, using the `base` keyword.  This is required if the superclass has no parameterless constructor, and avoids the compilation error in the previous example.
 
 ```
 namespace MyExample
@@ -583,7 +580,7 @@ Egg constructor completed
 ChocolateEgg parameterless constructor completed.
 ```
 
-If a class has multiple constructors, you can specify that a constructor should call another constructor in the same class before executing, using the `this` keyword.
+If a class has multiple constructors, you can instead specify that a constructor should call another constructor in the same class before executing, using the `this` keyword.
 
 ```
 namespace MyExample
@@ -919,6 +916,7 @@ public class Thing
 {
     public bool Theft { get; set; } = false;
 }
+```
 
 #### Immutable properties
 
@@ -971,7 +969,9 @@ public class Egg
 
 public class ChocolateEgg : Egg
 {
-    public new void CrackShell() // The new modifier tells the compiler we definitely intended this
+    // The new modifier tells the compiler we definitely meant to do this,
+    // and hide the Egg.CrackShell() method.
+    public new void CrackShell() 
     {
         Console.WriteLine("Chocolate cracked");
     }
@@ -996,7 +996,7 @@ Shell smashed
 
 Note that when the `ChocolateEgg` instance is assigned to a variable whose type is its base class, the base class implementation of `CrackShell()` is called.
 
-If a method in a base class is declared as `virtual`, then a method with the same name and type signature in a derived class can instead *override* the base method, instead of hiding it.  If we modify the previous example to make the `CrackShell()` method virtual:
+If a method in a base class is declared as `virtual`, then a method with the same name and type signature in a derived class will *override* the base method, instead of hiding it.  If we modify the previous example to make the `CrackShell()` method virtual:
 
 ```
 public class Egg
@@ -1009,7 +1009,8 @@ public class Egg
 
 public class ChocolateEgg : Egg
 {
-    public override void CrackShell() // The override modifier is required to specify overriding, not hiding
+    // Note we now need to use the override modifier instead of new.
+    public override void CrackShell() 
     {
         Console.WriteLine("Chocolate cracked");
     }
@@ -1023,21 +1024,23 @@ Chocolate cracked
 Chocolate cracked
 ```
 
-This time, the method invocation always calls the implementation in the specific type, whatever the type of the reference it is called with.  With non-virtual method calls, so-called static invocation, the implementation to be called is fixed at compile-time and written into the CIL code.  With virtual invocation, the implementation to be called is determined by the VES at run-time.  CIL does in fact have different instructions for static and virtual calls.
+This time, the method invocation always calls the implementation in the specific type, whatever the type of the reference it is called through.  With non-virtual method calls, (called "static invocation" in the CLI standard, but this isn't the same thing as calling a C# static method), the implementation to be called is fixed at compile-time and written into the CIL code.  With virtual invocation, the implementation to be called is determined by the VES at run-time.  CIL actually has different bytecode instructions for static and virtual calls.
 
-Like methods, properties can also be declared `virtual`, and virtual properties can be overridden using `override`.  Similarly, properties can hide the properties of base classes with the `new` modifier keyword.  If a read-write property is virtual, you have to declare the entire property to be virtual; you cannot, for example, have a virtual `get` method and a non-virtual `set` method.  The behaviour of hidden or overridden properties is exactly the same as the behaviour of hidden or overridden methods described above.
+Like methods, properties can also be declared `virtual`, and virtual properties can be overridden using `override`.  Likewise, properties can hide the properties of base classes with the `new` modifier keyword.  If a read-write property is virtual, you have to declare the entire property to be virtual; you cannot, for example, have a virtual `get` method and a non-virtual `set` method.  The behaviour of hidden or overridden properties is exactly the same as the behaviour of hidden or overridden methods.
 
-You cannot declare a private method or property to be virtual; this would be meaningless, as a private member cannot be accessed from a derived class so cannot be overridden.  If you try to, you will get a compiler error.
+You cannot declare a private method or property to be virtual; this would be meaningless. Because a private member can't be accessed from a derived class, it can't be overridden.  If you try to, you will get a compiler error.
 
-Methods and properties that are modified with `override` alone are implicitly virtual; if you try to declare them as `virtual override` you will get a compiler error on the grounds that the `virtual` keyword is superfluous.
+You can't use `override` if the method you are trying to override isn't declared as `virtual`; this is also a compile-time error.
 
-C#'s behaviour, in this section, differs notably from Java.  In Java, all methods are virtual in the .NET sense, and any derived class can override methods from its base classes without requiring any additional keywords to be added compared to a non-overriding method.  .NET, by comparison, allows the developer of the base classes to decide whether or not third parties should be able to override the behaviour of those classes' methods on a method-by-method level.
+Methods and properties that are modified with `override` implicitly inherit their "virtual-ness"; if you try to declare them as `virtual override` you will get a compiler error on the grounds that the `virtual` modifier is superfluous.  If you want to change this, see below under "sealed classes and members".
+
+C#'s behaviour, in this area, differs notably from Java.  In Java, all methods are virtual in the C# sense, and any derived class can override methods from its base classes without requiring any additional keywords to be added compared to a non-overriding method.  C# (and other CLI languages), by comparison, allow the developer of the base classes to decide whether or not third parties should be able to override the behaviour of those classes' methods on a method-by-method level.
 
 #### Sealed classes and members
 
 When a class is declared as `sealed`, you can't derive any other classes from it.  If you declare any protected members inside a sealed class, you'll get a compiler warning, as in that context `protected` has the same effective meaning as `private` (and `protected internal` the same meaning as `internal`).
 
-An `override` member of a non-sealed class can also be declared as sealed.  In this context, `sealed override` "unvirtualises" a member - in other words, it prevents any more derived types from overriding the member.  I said above that `override` always implies `virtual`; `sealed override` is effectively a form of `override` that does *not* imply `virtual`.
+An `override` member of a non-sealed class can also be declared as sealed.  In this context, `sealed override` "unvirtualises" a member&mdash;in other words, it prevents any further-derived types from overriding the member.  `sealed override` is effectively a form of `override` that does *not* imply `virtual`.
 
 #### Abstract classes
 
@@ -1074,6 +1077,8 @@ However this is really just a coincidence of syntax; when an abstract property i
 
 Abstract methods and properties can *only* occur inside abstract classes; if you try to use them in a concrete class, you will get an error.  Abstract methods and properties are implicitly virtual, so if you try to declare them as `abstract virtual` you will also get an error.
 
+When you derive a concrete class from an abstract class, you must provide an implementation for all abstract properties and methods in the base class.
+
 #### Static members and classes
 
 Static members of classes are accessed through the class name, and are not associated with an instance of the class.  In other words, given the following class:
@@ -1085,7 +1090,7 @@ public class Egg
 }
 ```
 
-...then the `Colour` property is accessed as `Egg.Colour`, and not accessed through an instance.  The same property applies to the class "across the board" within the same process, which is why (as the comment says)this is not actually a very good example, unless you are happy for all your eggs to be the same colour!
+...then the `Colour` property is accessed as `Egg.Colour`, and not accessed through an instance.  The same property applies to the class "across the board" within the same process, which is why (as the comment says) this is not actually a very good example, unless you are happy for all your eggs to be the same colour!
 
 Static fields can have initialisers, as the following:
 
@@ -1096,9 +1101,9 @@ public class Egg
 }
 ```
 
-Static initialiser code is gathered up into a special method created by the compiler, called the class constructor or class initialiser, which is guaranteed to be run before any constructor of that class is called.  However the exact point at which a class constructor is called is not defined beyond this, and historically has varied according to implementation.  You can't call the class initialiser yourself, but you can access its code and metadata via reflection like any other method.
+Static initialiser code is gathered up into a special method created by the compiler, called the class constructor, class initialiser or type constructor, which is guaranteed to be run before any constructor of that class is called.  However the exact point at which a class constructor is called is not defined beyond this, and historically has varied according to implementation.  You can't call the class initialiser yourself, but you can access its code and metadata via reflection like any other method.
 
-Methods (other than constructors) can be declared as static.  Inside a static method you can't use the `this` reference, or access any members with an implied `this` reference.  Static methods can't be declared as `virtual` or `abstract`, so also can't be overridden; however, a static method can hide an inherited instance method or vice-versa.
+Methods (other than constructors) can be declared as static.  Inside a static method you can't use the `this` reference, or access any non-static members with an implied `this` reference.  Static methods can't be declared as `virtual` or `abstract`, so also can't be overridden; however, a static method can hide an inherited instance method or vice-versa.
 
 A class can be declared as a static class if all of its members are static.  By implication, a static class can't have any defined constructors.  Static classes are implicitly `sealed`, so can't be inherited.  Even though a static class cannot contain `abstract` members, static classes are themselves implicitly `abstract`, as in CIL this is the flag used to mark a class as non-instantiable.
 
@@ -1106,7 +1111,7 @@ A class can be declared as a static class if all of its members are static.  By 
 
 When developing, you may find that you wish you could extend the API of a class or interface when you cannot.  Maybe it is something you don't control, maybe it is something that is `sealed`, maybe both.  You can partially get around this by writing *extension methods*.  These are static methods that can be called as if they were instance methods of any arbitrary class or struct, even one that you do not control.
 
-An extension method is a static method, in a static class, with at least one parameter, and where the first parameter is declared with the `this` modifier.  It can be called as a normal static method; or, it can be called as if it were an instance method of any instance or value of the first parameter's type (including `null` for reference types).  The `this` parameter can be of any type, including things such as `enum` types that cannot normally have methods.
+An extension method is a static method, in a static class, with at least one parameter, where the first parameter is declared with the `this` modifier.  It can be called as a normal static method; or, it can be called as if it were an instance method of any instance or value of the first parameter's type (including `null` for reference types).  The `this` parameter can be of any type, including things such as `enum` types that cannot normally have methods.
 
 Imagine, for example, that you wish the `string` type had a `ToAlternateCase()` method that changed characters alternately to upper then lower case.  Now, `string` is sealed, so you can't subclass it.  Creating an extension method, though, is straightforward.  One possible implementation would be as follows:
 
@@ -1136,7 +1141,7 @@ Giving classes containing extension methods names ending in `Extension` is a com
 
 Note that when used our new method appears to have no parameters.  Instead, the reference it appears to be called on is passed in as the first parameter to the method.  If the extension method has more than one parameter, then all but the first are passed normally, with the first positional parameter in the call being the second positional parameter in the method signature and so on.
 
-There is one major difference in behaviour between instance methods and extension methods, with respect to the caller.  If you call an instance method on a null reference, the VES will immediately throw a `NullReferenceException`.  However, because extension methods are really just a form of syntactic sugar that get substituted by a normal static method call in the CIL bytecode, calling an extension method on a null reference will not automatically throw an exception; you will just get a call to the method with `null` passed as the first parameter.  In many cases&mdash;including our example above&mdash;this may well throw a `NullReferenceException` in any case, but it may not.  It can be worthwhile specifically checking for a null first parameter and throwing the exception manually at the start of an extension method, so that from the caller's point of view the behaviour will be straightforward and almost the same as an instance method, save for the exception being thrown from within the method rather than from its calling frame.  Throwing exceptions is discussed below.
+There is one major difference in behaviour between instance methods and extension methods, with respect to the caller.  If you call an instance method on a null reference, the VES will immediately throw a `NullReferenceException`.  However, because extension methods are really just a form of syntactic sugar that get substituted by a normal static method call in the CIL bytecode, calling an extension method on a null reference will not automatically throw an exception; you will just get a call to the method with `null` passed as the first parameter.  In many cases&mdash;including our example above&mdash;this may well throw a `NullReferenceException` in any case, but it may not.  It can be worthwhile specifically checking for a null first parameter and throwing an exception manually at the start of an extension method, so that from the caller's point of view the behaviour will be straightforward and almost the same as an instance method, save for the exception being thrown from within the method rather than from its calling frame.  However, if all warnings are enabled, the compiler will give you a warning if you manually throw `NullReferenceException` at any point.  Throwing exceptions is discussed below.  In C# 9 and above you can avoid any issue by using a nullable context and declaring the `this` parameter non-nullable.
 
 #### Const fields and readonly fields
 
@@ -1144,19 +1149,19 @@ The `const` and `readonly` modifiers are both used to declare read-only fields. 
 
 A `const` field is an implicitly-static compile time constant.  It has to be initialised with an expression that the compiler can compute at compile time.  This puts a number of limitations on `const` fields.  They effectively have to be either value types or strings.  The value types must be "unmanaged value types"&mdash;value types that contain no references&mdash;and their initialisers must either be literal values or expressions the compiler knows how to fold into a literal value.
 
-Like method default values for parameters, const values are baked in to the CIL bytecode at the point of use when that code is compiled.  This means that one aspect of their behaviour is similar: if you change the coded value of a `const` field, both the code defining it and all the code using it has to be recompiled to pick up the new value.  In general, it is considered rather bad form to change the value of a `public const` field once it has been published.
+Like method default values for parameters, const values are baked in to the CIL bytecode at the point of use when that code is compiled.  This means that one aspect of their behaviour is similar: if you change the source code value of a `const` field, both the code defining it and all the code using it has to be recompiled to pick up the new value.  In general, it is considered rather bad form to change the value of a `public const` field once it has been published.
 
-You can use `readonly` fields a little more flexibly.  `readonly` can be used for both static and instance fields.  The former must be initialised; the latter must either be initialised or must be set in a constructor.  The value of a `readonly` field cannot be changed, once it has been set, but it is set at runtime so can be any computable value.
+You can use `readonly` fields a little more flexibly.  `readonly` can be used for both static and instance fields, and makes the field behave like a property with an `init` method.  Static fields must be initialised; instance fields must either be initialised or must be set in a constructor.  The value of a `readonly` field cannot be changed, once it has been set, but as it's set at runtime not compile time it can be any computable value or reference.
 
-There are situations in which accessing a `readonly` field leads to a slight performance penalty, due to small amounts of boilerplate code that the compiler has to add in some situations to ensure that the field is not modified.  However, equally, declaring a field as `readonly` can lead to slight optimisations being applicable in some circumstances.  In general, Visual Studio will hint you to mark a field as `readonly` whenever it can be.  A good example of a candidate situation for `readonly` use is when dependencies are injected as constructor parameters, as these then rarely change over the life of the object.
+There are situations in which accessing a `readonly` field leads to a slight performance penalty, due to small amounts of boilerplate code that the compiler has to add in some situations to ensure that the field is not modified.  However, equally, declaring a field as `readonly` can lead to slight optimisations being applicable in some circumstances.  In general, Visual Studio will hint you to mark a field as `readonly` whenever it can be.  A good example of a candidate situation for `readonly` use is when dependencies are injected as constructor parameters, as these then liekly should not change over the life of the object.
 
-Note that although the value of a `readonly` field is fixed, that does not mean that its members' values are also fixed.  This is particularly important to bear in mind in the case of `readonly` arrays: the `readonly` applies to the reference to the array, not to the individual values the array contains; it applies, however, to any `readonly` reference type, unless that type is something immutable such as a `string`.
+Note that although the value of a `readonly` field is fixed, that does not mean that its members' values are also fixed.  This is particularly important to bear in mind in the case of `readonly` arrays: the `readonly` applies to the reference to the array, not to the individual values the array contains.  The same applies to any `readonly` reference type, although you don't have to worry if that type is something immutable such as a `string`.
 
 ### Other aspects of syntax
 
 #### Flow control
 
-As stated above, most of the flow of control statements are very similar to other languages such as C, C++ or Java.  C# has a reasonably rich set of flow of control statements, and most of them behave in a reasonably intuitive way.  The main flow of control statements are `if`, `switch`, `while`, `for` and `foreach`.
+As stated above, most of the flow of control statements are very similar to other languages such as C, C++ or Java.  C# has a reasonably rich set of flow of control statements, and most of them behave in a reasonably intuitive way if you're familiar with other languages.  The main flow of control statements are `if`, `switch`, `while`, `for` and `foreach`.
 
 In general, each flow of control statement accepts either a single statement or a block statement, and if it takes a condition, the condition will be an expression surrounded by parentheses.  For example the `if` statement's format is as follows:
 
@@ -1261,7 +1266,7 @@ To expand a little on the rather opaque example above: `foreach` and `in` are ke
 
 The `IEnumerable<T>` interface is the base interface of all things iterable or enumerable.  The concepts behind this, and what you need to do to implement your own, are described below.  For now, all you need to know is that it is a type that can be used to access a set of items, all of the same type, sequentially.  When used in a foreach loop, the loop variable is set to the next item in the sequence, the loop body is executed; then the loop variable is set to the next item in the sequence and the loop body executed again, until there are no more items left in the sequence.
 
-Note that the `IEnumerable<T>` interface has no concept of the length of its contents, or of the position of the current item within the sequence.  Implementations of it are also not necessarily repeatable&mdash;.  Because of this, if you consume additional elements from the iterator within the loop body, the loop body will not get executed for those elements.  If you are iterating over a sequence of knowable length and need to know the position of each item in the sequence within the loop body, it usually makes more sense to use a `for` loop or a LINQ method (see below for the latter).  Similarly, many implementations of `IEnumerable<T>` will mark any active iterators as invalid if the underlying data is changed in certain ways, which can easily lead to runtime errors (for example, if you are iterating over a `List<T>` and add or remove elements to or from the list within the loop body).  It is best to treat the iterator, and anything underlying it, as immutable at least for the duration of the loop.
+Note that the `IEnumerable<T>` interface has no concept of the length of its contents, or of the position of the current item within the sequence.  Implementations of it are also not necessarily repeatable.  Because of this, if you consume additional elements from the iterator within the loop body, the loop body will not get executed for those elements.  If you are iterating over a sequence of knowable length and need to know the position of each item in the sequence within the loop body, it usually makes more sense to use a `for` loop or a LINQ method (see below for the latter).  Similarly, many implementations of `IEnumerable<T>` will mark any active iterators as invalid if the underlying data is changed in certain ways, which can easily lead to runtime errors (for example, if you are iterating over a `List<T>` and add or remove list elements within the loop body).  It is best to treat the iterator, and anything underlying it, as immutable for the duration of the loop.
 
 In the life of C# there has been one major breaking change, behaviourally, with respect to `foreach` loops.  In earlier versions of C#, when a `foreach` loop was being executed, the loop variable was conceptually the same variable across all iterations of the loop, and it was set to a different value each time.  With C# 5 and later, on each iteration of the loop, the loop variable is a different variable with the same name.  This might seem like semantic nitpicking, and in the vast majority of cases it is, but it leads to a difference in behaviour when loop variables are accessed within lambda expressions as a reference to the loop variable can then legitimately "leak" outside the loop.  Lambdas are explained properly below; most code analysis tools will give you a warning when you have used a construct that might have behaved differently in older versions of the language.  The workaround&mdash;which will give the same behaviour on all language versions&mdash;is to assign the loop variable's value to a second variable within the loop body and refer to the value through that variable instead.  The change was made, incidentally, partly because of the large number of developers who found the original behaviour unintuitive.
 
@@ -1274,7 +1279,7 @@ Like a number of other languages, C# supports structured exception handling.  Th
 * If an exception is not trapped within a particular stack frame, it "bubbles up" to the calling frame
 * If an exception bubbles all the way up to the top, the program exits.
 
-Exceptions are object types; developers can create new exception types, but all exception types must inherit in some way from the `System.Exception` class.  In general, it is usual to instantiate a new exception object when throwing an exception, but it's not compulsary.  The `System.Exception` class contains various useful properties, such as `Message` to hold a human-readable error message, `InnerException` which I'll explain shortly, and `StackTrace` which holds a formatted string describing the site where the exception was thrown.
+Exceptions are classes; developers can create new exception types, but all exception types must inherit in some way from the `System.Exception` class.  In general, it is usual to instantiate a new exception object when throwing an exception, but it's not compulsary.  The `System.Exception` class contains various useful properties, such as `Message` to hold a human-readable error message, `InnerException` which I'll explain shortly, and `StackTrace` which holds a formatted string describing the site where the exception was thrown.
 
 Exceptions are thrown using the `throw` statement:
 
@@ -1284,7 +1289,7 @@ throw new Exception("An error message");
 
 The parameter sets the `Exception.Message` property; `Exception.StackTrace` is set automatically by the `throw` statement.
 
-In general it is best practice to throw the most suitable type of exception for the situation in question, if one exists, and create your own specific exception types if none of the system exceptions fit your needs.  The system exceptions fit common use cases such as not allowing `null` to be passed into a method:
+In general it is best practice to throw the most suitable type of exception for the situation in question, if one exists, and create your own specific exception types if none of the system exceptions fit your needs.  The system exceptions fit common use cases such as checking method parameters:
 
 ```
 public void Bake(CakeMixture mixture, CakeTin tin)
@@ -1299,6 +1304,8 @@ public void Bake(CakeMixture mixture, CakeTin tin)
     }
 }
 ```
+
+If you have all warnings enabled, the compiler will give you a warning if you throw some exception types that are considered very broad, such as `Exception`, or are reserved for the VES to throw, such as `NullReferenceException` or `IndexOutOfRangeException`.
 
 The `nameof` operator, which returns the name of its operand as a string constant, was introduced in C# 6.  Before that, the above code would have to be written as `throw new ArgumentException("mixture")`, and if you changed the name of the parameter in the code, you would have to remember to update your `throw` statements to match.
 

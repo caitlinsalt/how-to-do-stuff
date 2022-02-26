@@ -105,6 +105,8 @@ Identifiers are case-sensitive, can contain alphanumeric characters or underscor
 
 One of the requirements of the CLS is that languages must provide an escaping system so that a keyword or other reserved word can be used as an identifier; this means that you do not have to worry about what words are reserved in other languages that might want to consume your code.  In C# this is done with the `@` character.  In code, for example, `if` is a keyword, but `@if` is the identifier whose actual name in the compiled metadata will be "if".  In general it is best to avoid identifiers that require `@`, but you might do for compatibility with other systems.
 
+Note that the set of valid CLS (and C#) identifiers is, even without considering `@`, a subset of all valid CLI identifiers.  This enables the compiler to generate and emit code which is not accessible by name from within user-written code, because its identifier is valid within the CLI but not within the language.  The compiler uses this, for example, to name anonymous methods and types.  You can only see these generated identifiers by decompiling the CIL code.
+
 Since C# 7.0 the identifier `_` has had a special meaning as the "discard variable name" when it has not been declared as anything else.  Although this feature was introduced to the language in such a way that it did not break any existing code which used `_` as a normal identifier, it is advisable not to use it as a normal identifier in new code in order to avoid confusion.  Discard variables are described further below.
 
 #### Comments
@@ -472,6 +474,27 @@ namespace MyExample
 }
 ```
 
+From C# 7 onwards, constructors that contain a single statement can be defined using the `=>` operator instead of with a block.
+
+```
+namespace MyExample
+{
+    public class Egg
+    {
+        double _length;
+        double _width;
+
+        public Egg(double size) => _length = _width = size;
+
+        public Egg(double width, double length)
+        {
+            _width = width;
+            _length = length;
+        }
+    }
+}
+```
+
 Note that now we have defined constructors explicitly, the compiler no longer inserts an implicit constructor, so if any code was calling the parameterless constructor it will now be broken.
 
 There are various things that can be done with constructor parameters, such as giving them default values or calling them by name, which also apply to method parameters and are described below under "Methods".
@@ -654,6 +677,12 @@ public int ExampleMethod(int x, int y, double twist)
     // ...
     return x;
 }
+```
+
+From C# 6 onwards, methods that contain a single statement can be defined using the `=>` operator instad of a block.
+
+```
+public int Double(int x) => x * 2;
 ```
 
 Methods can be overloaded, by specifying methods that share a name but have different parameter types.  The names of the parameters and the return type of the method do not count as differences as far as method overloading is concerned.  However, if a method is overloaded with different parameter types, the overloads may have different return types.
@@ -908,6 +937,8 @@ theThing.Theft = true;
 ```
 
 Where the constructor is parameterless, the constructor parentheses can be omitted when using brace initialiser syntax.  The above could also be written `Thing theThing = new Thing { Theft = true };`
+
+As above, from C# 9 onwards you can alternatively omit the type name and write `Thing theThing = new() { Theft = true };`.  However, you can't omit *both* parentheses and type name at the same time&mdash;this would clash with the syntax for an anonymous type declaration, which is described below.
 
 Since C# 6, you can also set the default value of an auto-implemented property when it is declared:
 
@@ -1503,7 +1534,7 @@ The `??` operator is the null-coalescing operator, introduced in C# 6, and is al
 
 The `? :` operator is the only ternery C# operator, and is also conditional and right-associative.  Given an expression of the form `test ? x : y`, the `test` expression is first evaluated.  If it is true, `x` is evaluated and becomes the value of the expression; if false, `y` is evaluated and becomes the value of the expression.
 
-Aside from the lambda-definition operator `=>` ("fat arrow"), which is described in a later section, all of the operators in the lowest-precedence rung of the table are assignment operators of one type or another.  Aside from the straightforward assignment operator `=`, each is an assignment form of a binary operator which also assigns the value of the expression to the left-hand operand.  For example, to take the best-known operator in this family, `x += y` is equivalent to `x = x + y` aside from the fact that `x` is only evaluated once.  There is a rich set of other assignment operators in the family, though; the `??=` operator, the newest, is only available in C# 8 so at the time of writing is only available in preview.
+Aside from the lambda-definition operator `=>` ("fat arrow"), which is described in a later section, all of the operators in the lowest-precedence rung of the table are assignment operators of one type or another.  Aside from the straightforward assignment operator `=`, each is an assignment form of a binary operator which also assigns the value of the expression to the left-hand operand.  For example, to take the best-known operator in this family, `x += y` is equivalent to `x = x + y` aside from the fact that `x` is only evaluated once.  There is a rich set of other assignment operators in the family, though; the `??=` operator, the newest, was introduced in C# 8.
 
 Most operators can be overloaded to handle user-defined types where appropriate.  This is done by defining a static, public "operator method" within the operand type (or one of the operand types, if they differ).  The name of the method is the symbol of the operator, and the declaration includes the `operator` keyword after the return type.  For example, if you wanted to define the equality operator for an `Egg` class it might look something like this:
 
@@ -1625,7 +1656,7 @@ Note that the explicit implementation `IZygote.Grow()` has been called, but as a
 
 #### Attributes
 
-Attributes are a way for the developer to attach custom metadata to code: to assemblies, classes, members, method parameters and method return types.  Some standard attributes affect how the compiler behaves; others are provided by the system or by frameworks to control runtime behaviour, and developers are also free to define their own custom attributes.  Common uses of attributes include the following:
+Attributes are a way for the developer to attach custom metadata to code: to assemblies, classes, members, method parameters and method return types.  Some standard attributes affect how the compiler behaves; others are provided by the system or by frameworks to control runtime behaviour, and developers are also free to define their own custom attributes.  A few examples of the things attributes can be used for are:
 
 * Controlling how C# code interacts with native code.
 * Marking code as obsolete.
@@ -1698,7 +1729,7 @@ var e = 4.2e1;         // double
 
 var f = 37.62372;      // double
 var g = 1e6;           // double
-var h = 1_000_000;     // int, but with the same value as g, and with underscores for clarity.
+var h = 1_000_000;     // int, with the same value as g, written with underscores for clarity.
 ```
 
 If an integer literal is too large to fit into an `int`, its type will be the smallest type it fits into out of `uint`, `long` and `ulong`, with `long` preferred over `ulong`.
@@ -1712,7 +1743,7 @@ var m = 9_294_102_466_702;         // long
 var n = 9_372_372_278_864_032_911; // ulong
 ```
 
-Incidentally, each type does have a `MaxValue` property to give you the definitive maximum limit should you need it in code.
+As mentioned earlier, each type does have a `MaxValue` property to give you the definitive maximum limit should you need it in code.
 
 You can override the default type of a numeric literal, if legal, using a suffix.  The `L` suffix specifies `long` and `UL` specifies `UL`.  However, a number with an `L` suffix that is too large for a `long` will be promoted to `ulong` without error.
 
@@ -1764,7 +1795,7 @@ The `\u` and `\x` sequences differ only in that with the latter leading zeros ma
 
 Line breaks are not permitted inside regular string literals.
 
-Verbatim string literals are prefixed with an `@` character.  In a verbatim string literal, there are no backslash escape sequences, and line breaks are permitted.  The only escape sequence within a verbatim string literal is `""`, which indicates one `"` character.  At one time verbatim string literals were much used to write Windows file paths, as they avoided doubling up all the directory-separator backslashes: it is much clearer to write `@"C:\Users\will\Desktop\Stuff\Repos\Guides\c-sharp-crash-course.md"` than to write `"C:\\Users\\will\\Desktop\\Stuff\\Repos\\Guides\\c-sharp-crash-course.md"`.  Nowadays, of course, in the platform-agnostic world you probably shouldn't be hardcoding paths into your code in that way, but there are still occasionally reasons to do it.  Verbatim string literals are converted into regular string literals at compile time, so if you decompile your code or inspect it in the debugger, all the escape sequences will be visible.
+Verbatim string literals are prefixed with an `@` character.  In a verbatim string literal, there are no backslash escape sequences, and line breaks are permitted.  The only escape sequence within a verbatim string literal is `""`, which indicates one `"` character.  At one time verbatim string literals were much used to write Windows file paths, as they avoided doubling up all the directory-separator backslashes: it is much clearer to write `@"C:\Users\Caitlin\Desktop\Stuff\Repos\Guides\c-sharp-crash-course.md"` than to write `"C:\\Users\\Caitlin\\Desktop\\Stuff\\Repos\\Guides\\c-sharp-crash-course.md"`.  Nowadays, of course, in the platform-agnostic world you probably shouldn't be hardcoding paths into your code in that way, but there are still occasionally reasons to do it.  Verbatim string literals are converted into regular string literals at compile time, so if you decompile your code or inspect it in the debugger, all the escape sequences will be visible.
 
 Interpolated strings were introduced in C# 6, and work a bit like strings in Perl or similar languages: they enable you to embed expressions into your string literal that will be interpreted at runtime.  They are prefixed with the `$` character, and the embedded expressions within the string are surrounded with braces, like this:
 
@@ -1772,15 +1803,15 @@ Interpolated strings were introduced in C# 6, and work a bit like strings in Per
 $"There are {lines.Count} lines in the document."
 ```
 
-In this example, `lines.Count` is an expression that will be evaluated, converted to a string, and inserted into the literal at runtime.  Interpolated strings are converted at compile time into calls to the `string.Format()` method, which is discussed more fully below; because of this, unlike regular or verbatim string literals, you can't use them in places such as `const` initialisers or attribute parameters.
+In this example, `lines.Count` is an expression that will be evaluated, converted to a string, and inserted into the literal at runtime.  Generally speaking, interpolated strings are converted at compile time into calls to the `string.Format()` method, which is discussed more fully below.  From C# 10 onwards, you can also use interpolated strings in `const` initialisers as long as all the expressions in the string are compile-time constants.
 
-The backslash escape sequences from regular string literals also work in interpolated strings.  C# 8 will introduce verbatim interpolated strings, enabling constructs such as `$@"C:\Users\{user}\Desktop"`, which is a bad example you should never actually use.
+The backslash escape sequences from regular string literals also work in interpolated strings.  C# 8 introduced verbatim interpolated strings, enabling constructs such as `$@"C:\Users\{user}\Desktop"`, which is a bad example you should never actually use because it makes a whole host of poor assumptions.
 
 #### Indexers
 
-You are hopefully already familiar with the idea of accessing members of an array through square brackets: `int x = arr[i];` for example.  In C this syntax is just a synonym for pointer arithmetic.  In C#, however, the square bracket operator can be extended to apply to any class for which it makes sense.  This is done by defining one or more *indexers*, effectively special properties which take one or more parameters to determine which element of the class's members you would like to access.  In code, an indexer is defined as if it were a property named `this[...]` with its parameters inside the square brackets.
+Hopefully you're already familiar with the idea of accessing members of an array through square brackets: `int x = arr[i];` for example.  In C this syntax is just a synonym for pointer arithmetic.  In C#, however, the square bracket operator can be extended to apply to any class for which it makes sense.  This is done by defining one or more *indexers*, effectively special properties which take one or more parameters to determine which element of the class's members you would like to access.  In code, an indexer is defined as if it were a property named `this[...]` with its parameters inside the square brackets.
 
-For an example, we may as well use the source code of .NET Core itself.  This is (at the time of writing) the master code for the indexer of the `System.Collections.Generic.List<T>` class, probably the most widely-used array-like class in C#.  The `List<T>` class's backing store is an array of type `T[]` called `_items`, so its indexer essentially just proxies that array, after doing range checks.  The `_version` field is a private field used by other methods to detect if the contents of the list have changed.  The below code is copied directly from GitHub, including the comment.
+For an example, we may as well use the source code of .NET Core itself.  This was (when I originally started writing this) the main-branch code for the indexer of the `System.Collections.Generic.List<T>` class, probably the most widely-used array-like class in C#.  The `List<T>` class's backing store is an array of type `T[]` called `_items`, so its indexer essentially just proxies that array, after doing range checks.  The `_version` field is a private field used by other methods to detect if the contents of the list have changed.  The below code was copied directly from GitHub, including the comment.
 
 ```
 public T this[int index]
@@ -1817,27 +1848,27 @@ Like methods, indexers can be overloaded with different parameter type signature
 
 ### Anonymous types
 
-We have seen above that all C# code is contained within a type, and that all types are named and contained within a namespace.  This is not, however, the full story: it is also possible to define *anonymous types*.  These are well-defined, and strongly-typed at compile time, but are not accessible by name, and have various other limitations:
+We have seen above that all C# code is contained within a type, and that all types are named and contained within a namespace.  This is not, however, the full story: it is also possible to define *anonymous types*.  These are well-defined types, and strongly-typed at compile time, but are not accessible by name and have various other limitations:
 
 - They are reference types.
 - The only members they can contain are properties.
-- The properties they contain are read-only and public.
+- The properties they contain are read-only and public.  Their types must be inferrable at compile-time, and they must not be unsafe types.
 - They cannot, therefore, contain methods, fields, or any other kind of member.
 - They cannot define constructors, therefore their only constructor is the implicit parameterless constructor.
 - They cannot define inheritance relationships, so are always implicitly derived from `object`.
 - They are only defined at the point(s) in the code where they are instantiated.
 
-The definition and instantiation of an anonymous type is similar to a constructor call using brace initialiser syntax, but without inclusion of the type name.
+The definition and instantiation of an anonymous type is similar to a constructor call using brace initialiser syntax, but without the parentheses or type name.
 
 ```
 var anon = new { Size = 37, Description = "Stuff" };
 ```
 
-This example defines an anonymous type; it will be given a name by the compiler, and this name will be visible if you disassemble the compiler's CIL output, but it is not accessible in code and is probably not valid to use as a C# type name.  Visual Studio will give it an auto-generated name such as `'a`, in tool-tips and other on-screen help, but this will probably not be the name that your compiler gives it.  For one thing, the compiler has to ensure that code containing multiple anonymous types uses different names for each distinct anonymous types, whereas Visual Studio does not.
+This example defines an anonymous type; it will be given a name by the compiler, and this name will be visible if you disassemble the compiler's CIL output, but it is not accessible in code.  The generated type name will probably not be valid as a type name within C# itself, to make sure you don't accidentally declare something which could cause a naming clash.  Visual Studio will give it an auto-generated name such as `'a`, in tool-tips and other on-screen help, but this will probably not be the name that your compiler gives it.  For one thing, the compiler has to ensure that code containing multiple anonymous types uses different names for each distinct anonymous types, whereas Visual Studio does not.
 
 Note the anonymously-typed object is assigned to a variable declared using the `var` keyword for implictly-typed declarations: `var` must be used, as there is no way to declare the variable's type explicitly.
 
-The types of the anonymous type's properties must be inferrable by the compiler at compile-time, and must not be unsafe types.  If, elsewhere in the code for the same assembly, another anonymous type is instantiated with the same properties, by both name and type, in the same order, the compiler will ensure that only one anonymous type is defined.  This ensures a form of duck typing: if two anonymous types appear to have the same signature, they will be compatible for assignment.  However, this is a very limited form of duck typing, in that the two types must be completely identical in their property signatures.  Consider the code:
+If, elsewhere in the same assembly, another anonymous type is instantiated with the same properties, by both name and type and in the same order, the compiler will ensure that only one anonymous type is defined.  This gives us a form of duck typing: if two anonymous types appear to have the same signature, they will be compatible for assignment.  However, this is a very limited form of duck typing, in that the two types must be completely identical in their property signatures.  Consider the code:
 
 ```
 var a = new { Size = 37, Description = "Things" };
@@ -1845,7 +1876,7 @@ var b = new { Description = "Stuff", Size = 12 };
 var c = new { Size = 8 };
 ```
 
-In C#, no assignments between the three variables are allowed, all six possible permutations of assignment causing compile-time errors.  In particular, even though code that uses variables `a` and `b` could almost certainly be identical, `a` cannot be assigned to `b` or vice-versa.
+In a language using looser duck typing, you might expect to be able to assign between these variables. In C#, no assignments between the three variables are allowed, all six possible permutations of assignment causing compile-time errors.  In particular, even though code that uses variables `a` and `b` could almost certainly be identical, `a` cannot be assigned to `b` or vice-versa.
 
 If a property in an anonymous type has the same name as the member being used to initialise it, a slight shorthand can be used in the definition, omitting the `=` sign and everything to the right of it.  This is most useful when wanting to define an anonymous type whose properties are a subset of those of another object.  The following code:
 

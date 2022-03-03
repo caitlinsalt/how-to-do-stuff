@@ -2,13 +2,13 @@
 
 Hello.
 
-So, you've decided to learn what Git is.  Maybe in your native culture it is part of some obscure coming-of-age ritual; maybe you've been roped into doing something that involves working with Git; maybe you have just heard so much about this strange git or GitHub thing that all the software developers you know say they know how to use, that you just have to know about it for yourself.  Never mind; it doesn't matter.  This is a guide to Git, written for people who know nothing at all about it, or indeed, about version-control systems in general.  It is hopefully simple, straightforward, not too technical, and will not make your brain hurt *too* much.  We start at the start, explain everything from first principles, and by the end of it you won't feel uncomfortable if someone tells you to check out their new branch, or that they have accidentally detached their HEAD.
+So, you've decided to learn what Git is.  Maybe in your culture it's part of some obscure coming-of-age ritual; maybe you've been roped into doing something that involves working with Git; maybe you have just heard so much about this strange git or GitHub thing that all the software developers you know say they know how to use, that you just have to know about it for yourself.  Never mind; it doesn't matter.  This is a guide to Git, written for people who know nothing at all about it, or indeed, about version-control systems in general.  It is hopefully simple, straightforward, not too technical, and will not make your brain hurt *too* much.  We start at the start, explain everything from first principles, and by the end of it you won't feel uncomfortable if someone tells you to check out their new branch, or that they have accidentally detached their HEAD.
 
 ## So, what is this thing?
 
 Git is a distributed version control system built on top of an immutable content-addressed data store.  Yes, I know that might at present just be a block of noises to you, so let's unpack it to see what those sounds actually mean.
 
-Version control systems are, essentially, systems that store prior versions of computer files so that you can go back and see how they have evolved over time.  They have been around, in one way or another, for the best part of fifty years at the time of writing.  Over that time many different version control systems have been developed, with different markets and capabilities, and taking different approaches to the fundamentals of how a version control system should work.  This document is not a history of or a guide to version control systems in general, so most of this great variety is glossed over as if it is not even there.  This document is unashamedly about Git, and how Git is designed to operate, and in some ways if you are coming to the subject as a complete novice, you have a great advantage in your lack of preconceptions about how you expect a version control system to do things.  Nevertheless, there are some aspects of Git's operation and terminology that do derive from older systems, and might not appear to make much sense on the surface.
+Version control systems are, essentially, systems that store prior versions of computer files so that you can go back and see how they have evolved over time.  They have been around, in one way or another, for the best part of fifty years at the time of writing.  Over that time many different version control systems have been developed, with different markets and capabilities, and taking different approaches to the fundamentals of how a version control system should work.  This document is not a history of or a guide to version control systems in general, so most of this great variety is glossed over as if it's not even there.  This document is unashamedly about Git, and how Git is designed to operate, and in some ways if you are coming to the subject as a complete novice, you have a great advantage in your lack of preconceptions about how you expect a version control system to do things.  Nevertheless, there are some aspects of Git's operation and terminology that do derive from older systems, and might not appear to make much sense on the surface.
 
 Historically, some version control systems have been designed for storing a single user's personal files under version control; others have been based around a client-server model, with a central server holding the entire archive and clients downloading the parts of it they want to know about.  Git is a fully distributed system, where each user has their own copy of the entire archive.
 
@@ -16,7 +16,7 @@ As well as being a distributed system, Git is designed to be non-hierarchical.  
 
 And finally, a "content-addressed data store" sounds like a complicated idea, but really it just means a database where each entry is indexed by its content.  When a new item of data is added, the content of the item is used to generate the name that it will be referred to by.  "Immutable" means that data, once it's in the store, can't be edited.  You can add new data, you can remove old data, but you can't change existing data.  Instead, you have to add a new, edited version of the data.  We'll go a bit more into how all this works later on, and the implications that it leads to.
 
-Git is a relative newcomer to version control, but it has still been around nearly 15 years&mdash;it was created in 2005 by Linus Torvalds, the original creator of the Linux operating system, as he felt very strongly that there was no open source version control software that met all the needs of the Linux kernel development team.  It was specifically written to be fast, flexible, scalable, and to deliberately avoid things that Torvalds saw as flaws in other version control systems; all these things come some way to explaining its current popularity.  It was written from the bottom up, with the data store created first and the version control workflow added on top.
+Git is a relative newcomer to version control, but it has still been around nearly 15 years&mdash;it was created in 2005 by Linus Torvalds, the original creator of the Linux operating system, as he felt very strongly that there was no open source version control software that met all the needs of the Linux kernel development team.  It was specifically written to be fast, flexible, scalable, and to deliberately avoid things that Torvalds saw as flaws in other version control systems; all these reasons come some way to explaining its current popularity.  It was written from the bottom up, with the data store created first and the version control workflow added on top.
 
 ## But what isn't it?
 
@@ -29,17 +29,17 @@ Here's a few things Git is not:
 * Git is not ideal for archiving every possible type of data
 * Git is not GitHub
 
-Git data is stored in ordinary files on your computer.  It's not encrypted, so the data in it isn't secure.  Git itself really just consists of a few software tools that manipulate those files; but if you were a true masochist, you could write your own tools or even edit the files by hand to some extent.  The data in Git is not necessarily permanent - it is possible to delete data from it.  If you try to delete things willy-nilly it will be obvious that the archive is broken; however, if you use the Git tools properly, it is possible to delete things and have it only be obvious to someone who has an older copy of the archive.
+Git data is stored in ordinary files on your computer.  It's not encrypted, so the data in it isn't secure.  Git itself really just consists of a few software tools that manipulate those files; but if you were a true masochist, you could write your own tools or even edit the files by hand to some extent.  The data in Git is not necessarily permanent&mdash;it is possible to delete data from it.  If you try to delete things willy-nilly it will be obvious that the archive is broken; however, if you use the Git tools properly, it is possible to delete things and have it only be obvious to someone who has an older copy of the archive.
 
-There are many implementations of Git - as well as the standard command-line tools, there are a wide number of versions with graphical user interfaces, and Git tools are built into a lot of programming tools, environments and editors.  Not all of them work in exactly the same way, but most of them are fairly close to each other - they have to be, in order to interoperate.  Git *can* be run as a server, but it doesn't have to be, and very few people need to run it as one.
+There are many implementations of Git&mdash;as well as the standard command-line tools, there are a wide number of versions with graphical user interfaces, and Git tools are built into a lot of programming tools, environments and editors.  Not all of them work in exactly the same way, but most of them are fairly close to each other&mdash;they have to be, in order to interoperate.  Git *can* be run as a server, but it doesn't have to be, and very few people need to run it as one.
 
-Git works best with "plain-text-like" files - files that you can open up in a "text editor" like Notepad.  This is because they have a few properties that make them particularly suited to efficient storage by a version control system:
+Git works best with "plain-text-like" files - files that you can open up in a "text editor" like Notepad.  This is because plain-text-like files have a few properties that make them particularly suited to efficient storage by a version control system:
 
-* On a human scale, they are information-dense.  It doesnt take many bytes on disk to store them.  Compare the size of a plain text file with, for example, a photo of the same words on a piece of paper.
-* On a computer scale, the reverse is actually true.  They are information-sparse, and compress easily.  A single byte of data can have 256 different values, but in even quite a large plain text file you might see only 50 of those values being used, just because of the size of the alphabet and the frequency of letters in it.
-* When you change a text-like file, the size of the changes is usually roughly proportional to the semantic content of the changes.  In simple terms, if you change about 10% of the words in a file, then about 10% of the bytes of data will change.  Going back to our example of a photo of a passage of text: you will find that the file could potentially be completely different.
+* On a human scale, they are information-dense.  It doesnt take many bytes on disk to store them.  Compare the size of a plain text file with, for example, a photo of the same words written on a piece of paper.
+* On a computer scale, the reverse is true: they are information-sparse and compress easily.  A single byte of data can have 256 different values, but in even quite a large plain text file you might see only 50 of those values being used, just because of the size of the alphabet and the frequency of letters in it.
+* When you change a text-like file, the size of the changes is usually roughly proportional to the semantic content of the changes.  In simple terms, if you change about 10% of the words in a file, then about 10% of the raw data in the file will change.  Going back to our example of a photo of a passage of text: you will find that the file could potentially be completely different.
 
-The upshot of the above is that plain-text-like files are relatively small, easily compressed, and that you can store a group similar files very efficiently by storing the whole of one, together with the instructions for editing it to change it into each of the others.  This makes it practical to store every different version of a file, over time, without using huge amounts of disk space.  If you try to do the same with binary files, such as images, the disk space you use will quickly swell up if the files are changing frequently.
+The upshot of the above is that plain-text-like files are relatively small, easily compressed, and that you can store a group of similar files very efficiently by storing the whole of one, and then instructions for editing it to change it into each of the others.  This makes it practical to store every different version of a file, over time, without using huge amounts of disk space.  If you try to do the same with binary files, such as images, the disk space you use will quickly swell up if the files are changing frequently.
 
 Text-like files that are good for Git (and other version control systems) include:
 * Plain text
@@ -48,7 +48,7 @@ Text-like files that are good for Git (and other version control systems) includ
 * Other XML data files
 * Markdown files, and similar text formats
 
-And files that aren't include:
+And files that aren't great for it include:
 * Images
 * Database files
 * Microsoft Office files
@@ -57,13 +57,13 @@ And files that aren't include:
 
 Microsoft Office files are a somewhat annoying case here, because they are actually XML files that have been zipped to save space.  Similarly, PDF files are a grey area: technically PDF is a text-like format, and you could write one by hand if you wanted to; however, nobody ever does, and a lot of PDF files are full of encoded images with all the downsides that entails.
 
-Lastly, I have known quite a few people initially get a bit confused between Git and GitHub.  GitHub is a Git hosting service.  You don't have to use GitHub to use Git.  There are, indeed, other Git hosting services out there such as Bitbucket, GitLab, Azure DevOps, and more.  They offer nice user interfaces, and very useful collaboration tools such as the ability to publish your code or just to share it within a group, and the ability for people to comment on your code or review changes before you finalise them.  They're also, for the 99% of people who want to use Git in a centralised and hierarchical style, a good way to provide that centralised focal point that is considered to be the official version of the archive.  However, you don't *have* to use them.
+Lastly, I have known quite a few people initially get a bit confused between Git and GitHub.  GitHub is a Git hosting service.  You don't have to use GitHub to use Git.  There are, indeed, other Git hosting services out there such as Bitbucket, GitLab, Azure DevOps, and more.  They offer nice user interfaces, and very useful collaboration tools such as the ability to publish your code or just to share it within a group, and the ability for people to comment on your code or review changes before you finalise them.  They're also, for the 99% of people who want to use Git in a centralised and hierarchical style, a good way to provide that centralised focal point that you can consider to be the official primary version of the archive.  However, you don't *have* to use them.
 
 ## Some terminology and some basics
 
-Now you know what Git, in the barest of terms, is, and have a few ideas about what it isn't.  Time to run through some basic concepts and terminology.  Bear in mind that much of the below describes the most common way to use Git.  It's actually much more flexible than this, but 99% of that flexibility is rarely used, and constantly bringing in hedges like "this is stored in that location&mdash;except when it isn't" would not really be very helpful to you right now.
+Now you know what Git is, in the barest of terms, and have a few ideas about what it isn't.  Time to run through some basic concepts and terminology.  Bear in mind that much of the below describes the most common way to use Git.  It's actually much more flexible than this, but 99% of that flexibility is rarely used, and constantly bringing in hedges like "this is stored in that location&mdash;except when it isn't" would not really be very helpful to you right now.
 
-One piece of general terminology that can be confusing is the difference between "folder" and "directory".  In general, frankly, they mean the same thing; originally "directory" was much more common but operating systems tended to switch over to "folder" when they gained graphical interfaces which used icons of manila folders as a visual metaphor.  Because Git started out as a Linux program and generally tends towards using Linux conventions, I'll use the word "directory" below, even though it is more typing.  Similarly, when writing file paths, Linux computers use `/` to separate directory names and Windows computers use `\\`
+One piece of general terminology that can be confusing is the difference between "folder" and "directory".  In general, frankly, they mean the same thing; originally "directory" was much more common but operating systems tended to switch over to "folder" when they gained graphical interfaces which used icons of manila folders as a visual metaphor.  Because Git started out as a Linux program and generally tends towards using Linux conventions, I'll use the word "directory" below, even though it's more typing.  Similarly, when writing file paths, Linux computers use `/` to separate directory names and Windows computers use `\`
 
 Another warning about terminology: when I use the word "digit" below I'll often be referring to *hexadecimal*, or base-16 digits; as well as the regular decimal digits they also include the letters a through to f, representing the numbers ten through to fifteen respectively.  Please try not to be too surprised if when I say "a two-digit directory name" you see something like `be` that actually looks like a word.  `be` in base 16 represents 190 in "normal human" base 10 counting, incidentally.
 
@@ -75,7 +75,7 @@ If I want to distinguish between things that you type and the computer's respons
 this is what the computer responds with
 ```
 
-I said above that there's no single implementation of Git.  There isn't, but below I have given example commands that use the official command-line version, downloadable from <https://git-scm.com/downloads>.  That website also has the official documentation, and [a list of graphical Git tools](https://git-scm.com/downloads/guis), some of them free and some of them expensive.  Git support is also built in to various other programming environments, although some of them (I'm looking at you, Microsoft Visual Studio) alter terminology slightly and blur various workflow steps together a bit.  Some operations are much easier in a graphical tool; I tend to use [Atlassian Sourcetree](https://www.sourcetreeapp.com) although it's naturally tempting to try to produce my own.
+I said above that there's no single implementation of Git.  There isn't, but below I have given example commands that use the official command-line version, downloadable from <https://git-scm.com/downloads>.  That website also has the official documentation, and [a list of graphical Git tools](https://git-scm.com/downloads/guis), some of them free and some of them expensive.  Git support is also built in to various other programming environments, although some of them (I'm looking at you, Microsoft Visual Studio) alter terminology slightly and blur various workflow steps together a bit.  Some operations are much easier in a graphical tool; I used to use [Atlassian Sourcetree](https://www.sourcetreeapp.com) although it's naturally tempting to try to produce my own.
 
 And now, let's dive in.
 
@@ -85,13 +85,13 @@ Git's data store contains a set of snapshots of the contents of the working area
 
 Each commit can have references to other commits which can be considered its direct predecessors, called *parents*.  Most commits have one parent.  Although a commit contains a full snapshot of every file in the working area, your Git tools can compare a commit with its parent to show you what has changed between the two&mdash;this mimics some other version control systems in which a commit consists of only the changes between two states, not the entire state itself.
 
-Copying the contents of a specific commit from the data store into the working area is called *checking out*.  The simplest possible way to explain the Git workflow is to say that you check out a commit, modify your files, and then *commit* (as a verb).  This will create a new commit (noun) in the data store, whose parent is the commit you checked out.  Your new commit is then considered to be your currently checked-out one.  There is a bit more to it than this, but I will explain that in the next section.
+Copying the contents of a specific commit from the data store into the working area is called *checking out*.  The simplest possible way to explain the Git workflow is to say that you check out a commit, modify some files, and then *commit* (as a verb).  This will create a new commit (noun) in the data store, whose parent is the commit you checked out.  Your new commit is then considered to be your currently checked-out one.  There is a bit more to it than this, but I'll explain that in the next section.
 
-Normally you don't check out a specific commit, though.  You check out a *branch*, which in one sense is just a name for a specific commit, but in another sense is the commit and all its history&mdash;the specific commit a branch refers to is often called "the head of the branch".  If you have a branch checked out, and follow the above process, then when you commit your changes the head of the branch will move along to your new commit, and you will still have the same branch checked out.
+Normally you don't check out a specific commit, though.  You check out a *branch*, which in one sense is just a name for a specific commit, but in another sense is the commit and all its history&mdash;the specific commit a branch refers to is often called the "head" or "tip" of the branch.  If you have a branch checked out, and follow the above process, then when you commit your changes the head of the branch will move along to your new commit, and you will still have the same branch checked out.
 
 Sometimes you will see the current checked-out commit referred to as *HEAD*.  This is because the name of your current checked-out branch or commit is stored in the file `.git/HEAD`.
 
-By convention, repositories start out with one branch, called `master`.  It's possible to have a repository that only ever has a `master` branch.  More commonly, people create and destroy branches on a fairly frequent basis.  It's fairly normal to create new branches to work on specific pieces of work.  Git was specifically designed for branches to be "cheap": in other words, creating them is quick and isn't resource-hungry.
+By convention, repositories start out with one branch, called `main` (originally the convention was for this branch to be called `master`).  It's possible to have a repository that only ever has a `main` branch.  More commonly, people create and destroy branches on a fairly frequent basis.  It's fairly normal to create new branches to work on specific pieces of work.  Git was specifically designed for branches to be "cheap": in other words, creating them is quick and isn't resource-hungry.
 
 Git's concept of branches is (in my opinion) one of the areas that differs the most from other common version control systems, in which a branch is really just a fancy type of directory.  Git's branches are much more powerful than that, but can be somewhat harder to understand, so I'll go into that in more detail later.  Before that, I want to explain a bit more about how the workflow works in practise.
 
@@ -117,7 +117,7 @@ git clone [repository address]
 
 Note that&mdash;in one of Git's many inconsistencies&mdash;running this command creates the repository as a new directory below your current one, whereas `git init` creates it inside your current directory.  In order for `git clone` to work in the same way as `git init`, you need to add "` .`" (space, dot) at the end of the command.
 
-Cloning a repository like this will download the whole thing from the server, then check out the `master` branch into the working area.  However, it does a little bit more than this.  A Git repository can also contain links to other copies of the same repository, called *remotes*, and cloning sets up a remote called `origin` which is a link back to the source of your clone.  This is important, when you are working in a centralised and hierarchical way, when it comes to sending your changes back to the central server.  The link to the origin repository also includes a list of all the branches on the remote repository, and what commits each branch currently points to.
+Cloning a repository like this will download the whole thing from the server, then check out the head of the `main` branch into the working area.  However, it does a little bit more than this.  A Git repository can also contain links to other copies of the same repository, called *remotes*, and cloning sets up a remote called `origin` which is a link back to the source of your clone.  This is important, when you are working in a centralised and hierarchical way, when it comes to sending your changes back to the central server.  The link to the origin repository also includes a list of all the branches on the remote repository, and what commits each branch currently points to.
 
 I said earlier that Git was designed to be completely decentralised and non-hierarchical, but that most people do still use it in a hierarchical way.  Because of this, most Git repositories end up having just one remote, `origin`.  However if you are working in a genuinely decentralised mesh of people, hard to manage as they are, you can have as many remote links as you like.  Having multiple remotes can also be a useful way to keep a hosted repository in sync between different hosting services, should you ever need to do that.
 
@@ -147,7 +147,7 @@ This step gets any data from the origin repository that you don't have locally.
 git fetch
 ```
 
-That's all it does really.  It updates your repository's data about what branches are in the origin repository, and what their status is, but doesn't make any changes to your own repository itself.
+That's all it does really.  It updates your repository's data about what branches are in the origin repository, and what their status is.  It also downloads all of the data you need to check out any of those branches.  It doesn't make any changes to your working area.
 
 #### Check out and pull
 
@@ -165,7 +165,7 @@ Even though `git fetch` makes sure your local repository has all of the same dat
 git pull
 ```
 
-This will, if necessary, update your local branch so that it is in line with the matching remote branch.  If it wasn't necessary, nothing will happen, but equally no harm is done.
+This will, if necessary, update your local branch so that it is in line with the matching remote branch.  If it wasn't necessary, nothing will happen, but equally no harm is done.  It also does an extra `fetch` first, just to make sure you're getting the latest version of the remote branch.
 
 #### Make your edits and add your changes to the data store
 
@@ -176,9 +176,9 @@ git add [filename]
 git add -A
 ```
 
-The first form processes only the named file (or files).  The second form processes all changes; if you want to do a "dry run" to see what it would do, use the command `git add -An`.  Confusingly, even though the command is `git add`, it's not just for adding new files to the data store.  It's also needed for adding new versions of existing but modified files.  Even more mind-melting, you can also use `git add` after you've deleted a file, to "add" the record of its deletion (although there is another less confusing way to delete files that I'll mention later).
+The first form processes only the named file (or files).  The second form processes all changes; if you want to do a "dry run" to see what it would do, use the command `git add -An`.  One important note here is that, even though the command is `git add`, it's not just for adding *new* files to the data store.  It's also needed for adding new versions of existing but modified files.  Even more mind-melting, you can also use `git add` after you've deleted a file, to "add" the record of its deletion (although there is another less confusing way to delete files that I'll mention later).
 
-Because `git add` applies to the version of the file currently saved on disk, you have to run it after the last edit to the file and before you commit your changes.  It doesn't matter if you run it multiple times (you will store extra versions of the file in the data store, but they will eventually get cleaned up again) but if you don't run `git add` immediately before committing your changes, you might not commit the version you expect.
+Because `git add` applies to the version of the file currently saved on disk, you have to run it after the last edit to the file and before you commit your changes.  It doesn't matter if you run it multiple times (you will store extra versions of the file in the data store if it's changed, but they will eventually get cleaned up again) but if you don't run `git add` immediately before committing your changes, you might not commit the version you expect.
 
 If you think this step all sounds a bit confusing, don't worry, it probably is.  A good user interface tool can help a lot here.  Some tools, such as the Git functionality built into Microsoft text editors like Visual Studio or Visual Studio Code, effectively hide the staging step from the user entirely, doing it in the background before committing.  Others, like Atlassian Sourcetree, still make it an explicit step, but show clearly on-screen which files have been changed but have not been staged, and which have been staged and will be committed.
 
@@ -194,7 +194,7 @@ The part in quotes is the *log message*.  You should really always include a log
 
 I love Vim really.  Honest.  Please, you can put the baseball bat down now.
 
-If you want to avoid any risk of accidentally opening Vim, of course, the best way is to use some sort of fancier Git interface like Sourcetree, where you can just type your log message into a box and then push a button.
+If you want to avoid any risk of accidentally opening Vim, of course, you can use some sort of fancier Git interface like Sourcetree, where you can just type your log message into a box and then push a button.  If you're on a Windows computer the command `git config --global core.editor notepad` will reconfigure Git to open Notepad instead of Vim.  On any computer you can configure Git to open any editor program by adapting that command, changing `notepad` to the full location of the editor's program file.
 
 Incidentally, if you want to reduce your typing, then if you type `git commit -a` it's *almost* the same as doing:
 
@@ -203,13 +203,13 @@ git add -A
 git commit
 ```
 
-Except that it's not quite the same.  Did I mention the Git command line has many inconsistencies?  Firstly, `git add -A` stages changes to *all* files, whether new, modified or deleted.  `git commit -a` only stages modified and deleted files; it doesn't touch new ones.  Secondly, because you didn't add `-m`...you've just started Vim.  Next time, you will remember to do `git commit -a -m "Please, not the fingers, I admit Vim has lots of advantages"`.
+Except that it's not quite the same.  Did I mention the Git command line has many inconsistencies?  Firstly, `git add -A` stages changes to *all* files, whether new, modified or deleted.  `git commit -a` only stages modified and deleted files; it doesn't touch new ones.  Secondly, because you didn't add `-m` and didn't try out tbe configuration command I showed you just up there...you've just started Vim.  Next time, you will remember to do `git commit -a -m "Please, not the fingers, I admit Vim has lots of advantages"`.
 
 Again, if you want to be more confident about exactly what you are committing, use a tool with a graphical user interfae, not the command line.
 
 #### Push your changes back to the remote server
 
-Now you have committed your changes, your branch is updated, but that has only happened on your own computer.  For other people to see your work, you need to copy the changes in your local repository up to the origin repository.  This is called a *push*.
+Now you have committed your changes, your branch is updated, but that change has only happened on your own computer.  For other people to see your work, you need to copy the changes in your local repository up to the origin repository.  This is called a *push*.
 
 ```
 git push
@@ -230,7 +230,7 @@ Most of it is, you can see, fairly similar to the previous.  You start off in a 
 
 ```
 git fetch
-git checkout master
+git checkout main
 git pull
 ```
 
@@ -240,19 +240,19 @@ But then you use `checkout` again, this time with a `-b` switch to create a new 
 git checkout -b bugs/my-amazing-bugfix
 ```
 
-If you use `/` in a branch name most Git tools will interpret that as a tree structure, as if it were a path to a file, but that's purely convention.  Nevertheless it's very useful to be able to group branches by purpose this way, and there are some popular workflows which impose specific prefixes like `release/` or `feature/` for those specific types of work.  If you use a ticketing system that gives each bug its own reference number, a lot of people will use that reference number in the branch name, so that it becomes something like `bugs/issue-1337-fix-some-typos`.  Some Git hosting services will automatically spot if a branch name contains a ticket reference, so their interface can then show links from code to ticket and vice-versa, or can automatically change the ticket status as commits are made to the branch.
+If you use `/` in a branch name most Git tools will interpret that as a node in a tree structure, as if it were a path to a file, but that's purely convention.  Nevertheless it's very useful to be able to group branches by purpose this way, and there are some popular workflows which impose specific prefixes like `release/` or `feature/` for those specific types of work.  If you use a ticketing system that gives each bug its own reference number, a lot of people will use that reference number in the branch name, so that it becomes something like `bugs/issue-1337-fix-some-typos`.  Some Git hosting services will automatically spot if a branch name contains a ticket reference, so their interface can then show links from code to ticket and vice-versa, or can automatically change the ticket status as commits are made to the branch.
 
-The `git checkout -b` command creates the new branch and checks it out as a single step, so you are then ready to make your changes, stage your changed files, and create your commit as before.  However, the command for uploading the branch to the remote server is slightly different.  A naked `git push` only works if the branch already exists in the origin repository.  You need to upload the commit, create the branch on the server and link the local branch to the new server branch.  The command for doing all of this is:
+The `git checkout -b` command creates the new branch and checks it out as a single step, so you're then ready to make your changes, stage your changed files, and create your commit as before.  However, the command for uploading the branch to the remote server is slightly different.  A naked `git push` only works if the branch already exists in the origin repository.  You need to upload the commit, create the branch on the server and link the local branch to the new server branch.  The command for doing all of this is:
 
 ```
-git push --set-upstream origin [branchname]
+git push -u origin [branchname]
 ```
 
 As above, a good Git user interface tool will hide all of this complexity from you somewhat, although some do distinguish between a push (the simple sort we described earlier) and a *publish* (the push-with-extra-bits shown here).
 
-"So how do I get the changes in my branch back into the master branch?" you're probably asking.  Well, to be frank, I suspect you're probably asking just how long this guide is, and whether it's time for a cup of tea yet.  However, in the hope that you have wondered if branches can be combined together rather than just split apart, I'll explain an answer to what happens next.
+"So how do I get the changes in my branch back into the main branch?" you're probably asking.  Well, to be frank, I suspect you're probably asking just how long this guide is, and whether it's time for a cup of tea yet.  However, in the hope that you have wondered if branches can be combined together rather than just split apart, I'll explain a little about what happens next.
 
-Now, branches can be *merged*.  A while ago, I mentioned that commits can have parents, and most commits have one parent.  You might have wondered at the time if it is possible for commits to have multiple parents&mdash;and it is!  A commit with two or more parents is called a *merge commit*, because it merges two branches together.  The vast majority of merge commits have two parents.  Theoretically, though, a commit can have any number of parents; a commit with three or more parents is called an *octopus merge* and is rather rare in the wild.  Of course, a commit also can have no parents at all; the first commit in a repository always does, for example, for obvious reasons.  A commit with no parents is called a *root*, and although you can have multiple roots in one repository, this is probably even rarer than an octopus merge.
+Branches can be *merged*.  A while ago, I mentioned that commits can have parents, and most commits have one parent.  You might have wondered at the time if it's possible for commits to have multiple parents&mdash;and it is!  A commit with two or more parents is called a *merge commit*, because it merges two branches together; the vast majority of merge commits have two parents.  Theoretically, though, a commit can have any number of parents: a commit with three or more parents is called an *octopus merge* and is rather rare in the wild.  Of course, a commit also can have no parents at all; the first commit in a repository always does, for example, for the simple reason that there aren't any other commits to be its parent.  A commit with no parents is called a *root*, and although you can have multiple roots in one repository, this is probably even rarer than an octopus merge.
 
 Merging your branches together when your work in one is completed is all well and good if you are a solo developer, a lone wolf, a coding hermit fighting a single-handed battle against the forces of chaos who doesn't use any sort of Git hosting service.  However, most of the hosting services offer something a bit more powerful called a *pull request*.  This has the following advantages:
 
@@ -262,7 +262,7 @@ Merging your branches together when your work in one is completed is all well an
 * It gives you a long-term archive of "significant merges"
 * You can use it alongside permissions to control contributions to your code
 
-On the last point, it's not that unusual to have a hosted repository set up in such a way that **nobody at all** is allowed to write commits directly onto the `master` branch.  Instead, the permissions in hosted repository service can often be configured so that `master` can only be changed by merging a pull request.  Additional limits can include things like "pull requests must have N reviewers sign them off before merging", or "your code must pass checks to make sure it is suitably stylish before the pull request can be merged".  That last one is not actually a joke.
+On the last point, it's not that unusual to have a hosted repository set up in such a way that **nobody at all** is allowed to write commits directly onto the `main` branch.  Instead, the permissions in hosted repository service can often be configured so that `main`, or other important branches, can only be changed by merging a pull request.  Additional limits can include things like "pull requests must have N reviewers sign them off before merging", or "your code must pass checks to make sure it is suitably stylish before the pull request can be merged".  That last one is not actually a joke.
 
 I've held off discussion of merging for a bit because it is a complicated and messy topic, because of the things that can happen when things don't merge together as cleanly as you would hope.  There's also *rebasing*, which is where you stick your fingers in your ears and pretend that your branch never existed to begin with.  Some people swear by rebasing, others swear at it, but I generally think that it is a bad idea in nearly all circumstances.  This is partly a philosophical point about rewriting the past, partly due to the difficulty involved in sticking your fingers in other people's ears as well as your own.  I'll explain why in a bit more detail later.  Before that, it might be an idea for me to dive more deeply into exactly what is happening and churning away in your `.git` directory when all of these different commands are done.
 

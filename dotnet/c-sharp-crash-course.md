@@ -15,11 +15,13 @@ The various nested parts of the CLI standard can be slightly confusing.  The CLI
 - The Common Intermediate Language (CIL, originally Microsoft Intermediate Language or MSIL).
 - The Virtual Execution System.
 
-An implementation of the CLI standard and the necessary libraries is called a Common Language Runtime (CLR).  Most implementations also fulfil a version of an extended standard, ".NET Standard", which is the CLI standard plus certain additional libraries.
+An implementation of the CLI standard and the necessary libraries is called a Common Language Runtime (CLR).  Most implementations also fulfil a version of an extended standard, ".NET Standard", which is the CLI standard plus certain additional libraries.  However, even the latest version of the .NET Standard falls short of the library features found in the most recent Microsoft implementations (.NET 5 and .NET 6), and the .NET Standard is not going to be updated to take these features into account, so it is now something of a dead letter.
 
-C# is at its heart a strongly-typed language.  The CTS describes the type system of the CLI; and is effectively the core of the CLI because it determines a huge amount of basic fundamental behaviour.  In the CLI, all code must belong to a type.  The CLS is a subset of the CTS, which ensures compatibility between CIL code written in different source languages.  C# is a CLS-conforming language, and can consume libraries written in other CLS-conforming languages; but it is also possible to write non-CLS-conforming code.  If you write a library in C# using non-CLS-conforming language features, code written in other languages might not be able to call it.
+Aside fromo these standards, which concern the underlying runtime, the C# language also has its own standards documents and version numbers, and although a given version of C# is often tied to a particular .NET implementation, the numbers don't match (for example C# 10 is the language version that matches .NET 6).  I've tried to explain how the various versions and standards marry up in a table below.
 
-When creating code in Visual Studio you must choose a "target framework" - this is the particular CLI implementation (and version) that you expect to run your code.  The .NET Standard target outputs code which should be compatible with any implementation that meets the given version of that standard; other targets will produce code that will only run on the specific implementation (or sometimes, a newer version of the implementation).  Although all of the implementations meet the CLI specification, there are many things that it does not cover or that have in some way become out of date.  These can include (but are not limited to):
+C# is at its heart a strongly-typed language.  The CTS describes the type system of the CLI; and is effectively the core of the CLI because it determines a huge amount of basic fundamental behaviour.  In the CTS and therefore the CLI, all code must belong to a type.  The CLS is a subset of the CTS, which ensures compatibility between CIL code written in different source languages.  C# is a CLS-conforming language, and can consume libraries written in other CLS-conforming languages; but it is also possible to write non-CLS-conforming code in C# or in other languages.  If you write a library in C# using non-CLS-conforming language features, code written in other languages might not be able to call it, and vice-versa.
+
+When creating code in Visual Studio you must choose a "target framework" - this is the particular CLI implementation (and version) that you expect to run your code.  The .NET Standard target outputs code which should be compatible with any implementation that meets the given version of that standard; other targets will produce code that will only run on the specific implementation (or sometimes, a newer version of the same implementation).  Although all of the implementations meet the CLI specification, there are many things that it does not cover or that have in some way become out of date.  These can include (but are not limited to):
 
 - how programs are started
 - configuration file formats
@@ -29,51 +31,53 @@ When creating code in Visual Studio you must choose a "target framework" - this 
 
 In particular, GUI libraries and other similar-level frameworks are not standardised, so their ability will depend on the implementation you are using.
 
-Over the past twenty years Microsoft have produced two major CLR implementations: the .NET Framework, and .NET, which was formerly called .NET Core.  The former was a Windows-based implementation; the latter is cross-platform.  The .NET Framework is still under long-term support but will not receive new feature releases.  For clarity, when I say ".NET" I'm referring to the current CLR implementation that was formerly called ".NET Core", and not to CLR implementations in general.
+Over the past twenty years Microsoft have produced two major CLR implementations: the .NET Framework, and .NET, which was formerly called .NET Core.  The former was a Windows-based closed-source implementation; the latter is cross-platform and largely open-source.  The .NET Framework is still under long-term support but will not receive new feature releases.  For clarity, when I say ".NET" I'm referring to the current CLR implementation that was formerly called ".NET Core", and not to CLR implementations in general.
 
-Version numbers can also cause confusion, as the following all have different numbering sequences, some of them relatively close together and some of them radically different:
+I mentioned above that the C# language and the .NET implementation have different version numbers.  In fact, all of the following have different numbering sequences, some of them relatively close together and some of them radically different:
 
 - the CLI standard
 - the C# language
 - the .NET Framework CLI implementation
-- the .NET or .NET Core CLI implementation
+- the .NET (or .NET Core) CLI implementation
 - the .NET Standard API standard
 
-In general, below, most version number references are to the relevant version of the C# language, but I have tried to always make it clear what a version number relates to.  However, here is an approximate correspondance table, just in case you need it for reference:
+In general, below, most version number references in this document are to the relevant version of the C# language, and I've tried to make it clear what any version number I mention refers to.  However, here's an approximate correspondance table.  An exact one would be difficult to express succinctly.
 
-| CLI version | C# version    | .NET Framework version | .NET / .NET Core version | .NET Standard version |
-| ----------- | ------------- | ---------------------- | ------------------------ | --------------------- |
-| 1.0         | 1.0           | 1.0                    | N/A                      | N/A                   |
-| 1.1         | 1.1           | 1.1                    | N/A                      | N/A                   |
-| 2.0         | 2.0           | 2.0                    | N/A                      | N/A                   |
-|             |               | 3.0                    | N/A                      | N/A                   |
-|             | 3.0           | 3.5                    | N/A                      | N/A                   |
-| 4           | 4.0           | 4.0                    | N/A                      | N/A                   |
-|             | 5.0           | 4.5                    | N/A                      | 1.0                   |
-|             |               |                        | N/A                      | 1.1                   |
-|             |               | 4.5.1                  | N/A                      | 1.2                   |
-|             | 6.0           | 4.6                    | N/A                      | 1.3                   |
-|             |               | 4.6.1                  | 1.0                      | 1.4                   |
-|             | 7.0           | 4.6.2                  | 1.1                      |                       |
-|             | 7.1           | 4.7                    | 2.0                      |                       |
-|             | 7.2           | 4.7.1                  |                          |                       |
-|             | 7.3           | 4.7.2                  | 2.1                      | 2.0                   |
-|             |               |                        | 2.2                      |                       |
-|             |               | 4.8                    |                          |                       |
-|             | 8.0           |                        |                          |                       |
-|             |               | N/A                    | 3.0                      | 2.1                   |
-|             | 9.0           | N/A                    | 5                        |                       |
-|             | 10.0          | N/A                    | 6                        |                       |
+| CLI version | C# version    | .NET Framework version | .NET (or .NET Core) version | .NET Standard version |
+| ----------- | ------------- | ---------------------- | --------------------------- | --------------------- |
+| 1.0         | 1.0           | 1.0                    | N/A                         | N/A                   |
+| 1.1         | 1.1           | 1.1                    | N/A                         | N/A                   |
+| 2.0         | 2.0           | 2.0                    | N/A                         | N/A                   |
+|             |               | 3.0                    | N/A                         | N/A                   |
+|             | 3.0           | 3.5                    | N/A                         | N/A                   |
+| 4           | 4.0           | 4.0                    | N/A                         | N/A                   |
+|             | 5.0           | 4.5                    | N/A                         | 1.0                   |
+|             |               |                        | N/A                         | 1.1                   |
+|             |               | 4.5.1                  | N/A                         | 1.2                   |
+|             | 6.0           | 4.6                    | N/A                         | 1.3                   |
+|             |               | 4.6.1                  | 1.0                         | 1.4                   |
+|             | 7.0           | 4.6.2                  | 1.1                         |                       |
+|             | 7.1           | 4.7                    | 2.0                         |                       |
+|             | 7.2           | 4.7.1                  |                             |                       |
+|             | 7.3           | 4.7.2                  | 2.1                         | 2.0                   |
+|             |               |                        | 2.2                         |                       |
+|             |               | 4.8                    |                             |                       |
+|             | 8.0           |                        |                             |                       |
+|             |               | N/A                    | 3.0                         | 2.1                   |
+|             | 9.0           | N/A                    | 5                           |                       |
+|             | 10.0          | N/A                    | 6                           |                       |
 
-I've omitted a couple versions of .NET Standard between 1.4 and 2.0 which were implemented by .NET Core from version 1, but not implemented by .NET Framework until version 4.7.2.  .NET Framework 4.8 supports some features of .NET Standard 2.1 but will not support any full version after 2.0.
+I've omitted a couple versions of .NET Standard between 1.4 and 2.0 which were implemented by .NET Core from version 1, but not implemented by .NET Framework until version 4.7.2.  .NET Framework 4.8 supports some features of .NET Standard 2.1 but does not support all of them.  Microsoft have announced that future versions of .NET will continue supporting .NET Standard 2.1, but further versions of .NET Standard will not be produced.
 
 ### Building and running code
 
-Most C# developers use Visual Studio.  In that program, the top level item&mdash;the file that you open to start work&mdash;is the solution, stored in a `.sln` file.  it contains projects, which can be of various kinds.  When you create a new project there are a large number of different C#-related templates to set up projects with different purposes, which set the target framework and set up various different configuration options and boilerplate code, but all of them store the project's details in a `.csproj` file.  Other languages use different file extensions for their project files.  The project file is an XML file that defines what source code and other files belong to the project, how those source files are displayed in the IDE, and more importantly everything related to the build process.  You can modify the build process by hand-editing the `.csproj` file, but this is a relatively rarely-required task.  `.csproj` files have become much simpler in .NET compared to .NET Framework, because a number of things that had to be specified explicitly in .NET Framework are implicit in .NET; most notably, all source code files had to be explicitly listed in a .NET Framework project file, whereas a .NET project assumes all `.cs` files inside the project folder are part of the project.
+Most C# developers use Visual Studio.  In that program, the top level item&mdash;the file that you open to start work&mdash;is the solution, stored in a `.sln` file.  it contains projects, which can be of various kinds: C# projects, other .NET projects, or other kinds of project entirely.  When you create a new project there are a large number of different C#-related templates to set up projects with different purposes, which set the target framework and various different configuration options, and usually create some amount of boilerplate code, but all of them store the project's details in a `.csproj` file.  Other languages and kinds of project use different file extensions for their project files.  The project file is an XML file that defines the project's target framework, various project-level settings, any non-standard variations on the build process, and potentially a large amount of other information.  In .NET Framework the project file also referenced all of the source code files belonging to the project; in .NET, the project file only contains references to source files that have some sort of non-default setting or behaviour, with .NET assuming that all files inside the project folder (other than those in build output folders) belong to the project and have default behaviour.  In general, partly become of this, .NET `.csproj` files are much simpler and shorter than .NET Framework ones.  
 
-Visual Studio handles building code itself, but Microsoft also supply command-line build tools which will also parses your `.sln` and `.csproj` files and carries out the required build steps.  For the .NET Framework this was `MSBuild.exe`; for .NET this is done using the `dotnet` utility with the `dotnet msbuild` command.  The latter has preserved command-line-argument compatibility with the former.  There is also a `dotnet build` command which does not preserve compatibility but is simpler to use.  If you set up any sort of CI and/or CD pipeline it will probably use `dotnet` (or MSBuild) to control and run the build process, rather than Visual Studio.  As an aside, I've noticed in the past that the .NET Framework MSBuild parser for `.sln` files is more restrictive than the Visual Studio parser and will throw errors on some `.sln` syntax errors than Visual Studio will silently ignore; this can lead to issues where CI builds are broken but developers cannot reproduce the error.  The solution to this is to make a zero-effect change to the solution, to convince Visual Studio that the `.sln` file needs to be written to disk; it will silently correct the syntax error(s) as it does so.
+You can modify the build process by hand-editing the `.csproj` file, but this is a relatively rarely-required task.  It can however be useful to alter project-level settings which are not surfaced in the IDE.
 
-Although as I said most C# developers use Visual Studio, .NET has made it much simpler to develop in C# using other tools, as the `dotnet` command includes tools for carrying out a lot of tasks which were previously hard to do manually: setting up new projects, for example, or building and publishing code.  If you don't want to learn the whole of Visual Studio, it is entirely possible now to use a more Unix-like editor-and-commandline workflow, such as Visual Studio Code and Powershell.  I wouldn't recommend trying to use .NET Framework without Visual Studio.
+Visual Studio handles building code itself, but Microsoft also supply command-line build tools which will also parses your `.sln` and `.csproj` files and carries out the required build steps.  For the .NET Framework this was `MSBuild.exe`; for .NET this is done using the `dotnet` utility with the `dotnet msbuild` command.  The latter has preserved command-line-argument compatibility with the former.  There is also a `dotnet build` command which does not preserve compatibility but is simpler to use.  If you set up any sort of CI and/or CD pipeline it will probably use `dotnet` (or MSBuild) to control and run the build process, rather than Visual Studio.  As an aside, [I've noticed in the past that](http://www.symbolicforest.com/blog/2020/11/13/technical-advice-post-of-the-week/) the .NET Framework MSBuild parser for `.sln` files is more restrictive than the Visual Studio parser and will throw errors on some `.sln` syntax errors than Visual Studio will silently ignore; this can lead to issues where CI builds are broken but developers cannot reproduce the error.  The solution to this is to make a zero-effect change to the solution, to convince Visual Studio that the `.sln` file needs to be written to disk; it will silently correct the syntax error(s) as it does so.
+
+Although as I said most C# developers use Visual Studio, .NET has made it much simpler to develop in C# using other tools, as the `dotnet` command includes tools for carrying out a lot of tasks which were previously hard to do manually: setting up new projects, for example, or building and publishing code.  If you don't want to learn the whole of Visual Studio, it is entirely possible now to use a more Unix-like editor-and-commandline workflow, such as Visual Studio Code and Powershell.  JetBrains have also introduced a paid-for .NET IDE called "Rider".  I wouldn't recommend trying to use .NET Framework without Visual Studio.
 
 Both .NET and .NET Framework ship the language build tools as part of the framework, so all computers that are capable of running .NET (or .NET Framework) applications are, in theory, capable of building them too.  This includes MSBuild functionality, and the C# compiler itself (`csc.exe` on .NET Framework, `csc.dll` on .NET).  As above, this is relatively straightforward to do with .NET but is rather more difficult with the .NET Framework, generally requiring a lot of wrestling with command-line options.
 
@@ -92,20 +96,20 @@ C# is a C-derived language, so the following general rules similar to C, C++ and
 - In general the language is white space agnostic, but there are standards.
 - The `=` operator is used for assignment, and the `==` operator for comparison.
 - String constants are delimited by `"`, character constants by `'`, hex constants are prefixed `0x` and octal constants prefixed `0`.
-- In most cases operators have the same meanings as in the other languages, including the ternery conditional operator.
+- In most cases operators have approximately the same meanings as in the other languages, including the ternery conditional operator.
 - Variables are declared before or when they are initialised.
-- In most cases, similar scoping rules apply as in those other languages.
+- In most cases, C# has similar scoping rules to the other languages mentioned.
 - The flow-control keywords `if`, `else`, `for`, `do` and `while` work in a similar way to the other languages.  There is also a `foreach` loop.
 - Members are accessed using the `.` operator.
 - Indexing is normally zero-based.
 
-Although C# uses `*` for pointer dereferencing, pointers are only encountered very rarely in C# code and can only be used under relatively strict conditions.
+Although C# uses `*` for pointer dereferencing like C and C++, pointers are only encountered very rarely in C# code and can only be used under relatively strict conditions.
 
-Identifiers are case-sensitive, can contain alphanumeric characters or underscore, and cannot start with a decimal digit.
+Identifiers are case-sensitive, can contain alphanumeric characters or underscores, and cannot start with a decimal digit.
 
-One of the requirements of the CLS is that languages must provide an escaping system so that a keyword or other reserved word can be used as an identifier; this means that you do not have to worry about what words are reserved in other languages that might want to consume your code.  In C# this is done with the `@` character.  In code, for example, `if` is a keyword, but `@if` is the identifier whose actual name in the compiled metadata will be "if".  In general it is best to avoid identifiers that require `@`, but you might do for compatibility with other systems.
+One of the requirements of the CLS is that languages must provide an escaping system so that a keyword or other reserved word can be used as an identifier; this means that you don't have to worry about what words are reserved in other languages that might want to consume your code.  In C# this is done with the `@` character.  In code, for example, `if` is a keyword, but `@if` is the identifier whose actual name in the compiled metadata will be "if".  In general it is best to avoid identifiers that require `@`, but you might do (and might need to) for compatibility with other systems.
 
-Note that the set of valid CLS (and C#) identifiers is, even without considering `@`, a subset of all valid CLI identifiers.  This enables the compiler to generate and emit code which is not accessible by name from within user-written code, because its identifier is valid within the CLI but not within the language.  The compiler uses this, for example, to name anonymous methods and types.  You can only see these generated identifiers by decompiling the CIL code.
+Note that the set of valid CLS (and C#) identifiers is, even without considering `@`, a subset of all valid CLI identifiers.  This enables the compiler to generate and emit code which is not accessible by name from within user-written code, because its identifier is valid within the CLI but not within the language.  The compiler uses this, for example, to name anonymous methods and types, among other things.  You can only see these generated identifiers by decompiling the CIL code.
 
 Since C# 7.0 the identifier `_` has had a special meaning as the "discard variable name" when it has not been declared as anything else.  Although this feature was introduced to the language in such a way that it did not break any existing code which used `_` as a normal identifier, it is advisable not to use it as a normal identifier in new code in order to avoid confusion.  Discard variables are described further below.
 
@@ -113,7 +117,7 @@ Since C# 7.0 the identifier `_` has had a special meaning as the "discard variab
 
 As in Java and C++, C# supports both `/* ... */` block comments and `//` single-line comments.  The latter are more commonly used.
 
-There are also `///` and `/** ... */` comments which are similar in concept to `/** ... */` doc-comments in Java.  These comments appear before definitions and contain XML in a particular schema.  The compiler can extract the content of these comments at compile-time and write them out to an XML file, which then can be processed by other tools to generate documentation files.  Even if you do not do this, Visual Studio will read the comments and display the documentation in tooltips when you mouse over calling code.  Here's an example of what it looks like:
+There are also `///` and `/** ... */` comments which are similar in concept to `/** ... */` doc-comments in Java.  These comments appear before definitions and contain XML in a particular schema.  The compiler can extract the content of these comments at compile-time and write them out to an XML file, which then can be processed by other tools to generate documentation files.  Even if you don't use them to generate separate documentation, Visual Studio will read the comments and display the documentation in tooltips when you mouse over calling code.  Here's an example of what it looks like:
 
 ```
 /// <summary>
@@ -145,21 +149,21 @@ In real-life code these comments usually use `///`, with `/** ... */` being comp
 class BiscuitStore
 ```
 
-The initial `*` on each line is removed, to allow for this style of formatting, but they all must be in line, with the same indent.
+The initial `*` on each line is removed, to allow for this style of formatting, but they all must be vertically in line, with the same indent, for this to work properly.
 
 #### Garbage collection
 
-C# is a garbage-collected language.  Data that is under the wing of the garbage collector is sometimes referred to as "managed data" or "managed objects".  All objects created from within C# code itself are managed objects, but objects created from external libraries may be "unmanaged objects" and may have to be manually closed or disposed: for example, open file handles or database connections.
+The CLR is a garbage-collected environment, so C# is a garbage-collected language, at least for the vast majority of data created by most programs.  Data that is under the wing of the garbage collector is sometimes referred to as "managed data" or "managed objects".  Generally speaking all objects created from within C# code itself are managed objects, but objects created from external libraries may be "unmanaged objects" and may have to be manually closed or disposed: for example, open file handles or database connections.  Managed objects which look after unmanaged objects are called "disposable objects" and should contain a certain amount of largely-boilerplate code (which Visual Studio can insert an outline template for) to ensure the garbage collector handles the unmanaged references properly.  Managed objects which look after disposable objects should also be disposable objects themselves.
 
-The term "unmanaged type" is also used in some contexts to refer to data created from within C# code that does not contain or refer to objects.
+The term "unmanaged type" is also used in some contexts to refer to data created from within C# code that does not contain or refer to objects, because again the garbage collector does not need to get involved in cleaning these up.
 
-I will explain about garbage collection in more detail later.
+I will explain about garbage collection and the disposable type pattern in more detail later, after we've talked more about the type system.  For now, all you need to know is that in general you don't need to worry *too* much about manually cleaning up memory.
 
 ### Types and assemblies
 
 #### Types and namespaces
 
-All code in C# (and in all CLI languages) belongs to a type, and every expression and declared storage location also has a type.  Each type belongs to a namespace, and has a fully-qualified name which consists of the namespace name, a dot, and the type name.  For example, the `System.IO` namespace contains the `Path` class, whose fully-qualified name is `System.IO.Path`.  Namespaces are lexically hierarchical.
+All code in C# (in fact, in all CLI languages) belongs to a type, and every expression and every declared storage location also has a type.  Each type belongs to a namespace, and has a fully-qualified name which consists of the namespace name, a dot, and the type name.  For example, the `System.IO` namespace contains the `Path` class, whose fully-qualified name is `System.IO.Path`.  Namespaces are lexically hierarchical, with name segments separated by dots, and the namespace hierarchy within a project by convention, normally reflects the folder hierarchy of the source files in that project.  This isn't strictly compulsary, but is recommended.
 
 Traditionally, each source-code file contains a top level `namespace` block, which contains type definitions within it, as follows:
 
@@ -173,7 +177,7 @@ namespace MyApplication
 }
 ```
 
-The above fragment defines the class `MyApplication.Program`.  Some of the examples below in this document include the `namespace { ... }` block for completeness; others omit it for conciseness.   From C# 10 onwards, the namespace block is not needed if you only have one namespace in a file, which is nearly always the case.
+The above fragment defines the class `MyApplication.Program`.  Some of the examples below in this document include the `namespace { ... }` block for completeness; others omit it for conciseness.   From C# 10 onwards, the namespace block is not needed if you only have one namespace in a file, which&mdash;given the convention that the namespace hierarchy matches the project source code folder hierarchy&mdash;is nearly always the case.
 
 ```
 namespace MyApplication;
@@ -183,17 +187,23 @@ class Program
 }
 ```
 
-Within a given namespace, types in that namespace can be referred to by just the name of the type, but types in unrelated namespaces, by default, have to be referred to by their fully-qualified name.  The `using` declaration, within a code file, specifies namespaces to be lexically imported, so that their types do not need to be specified by their fully-qualified names.  Visual Studio normally adds a number of `using` statements to the top of each new code file by default, such as `using System;` and `using System.Linq;`
+Within a given namespace and its hierarchical descendents, types in that namespace can be referred to by just the name of the type, but types in unrelated namespaces, by default, have to be referred to by their fully-qualified name.  The `using` directive, within a code file, specifies namespaces to be lexically imported, so that their types do not need to be specified by their fully-qualified names.  Visual Studio normally adds a number of `using` directive to the top of each new code file by default, such as `using System;` and `using System.Linq;`  The `using` directive can also be used to alias a type or a namespace, with the syntax `using Alias = Some.Actual.Type;`, which can be useful to avoid naming clashes.
 
-If namespaces are related - that is, have the same root - then partially-qualified type names can be used.  For example, if a project has the namespaces `MyApplication` and `MyApplication.Helpers`, then within the class `MyApplication.Thing` the class whose fully-qualified name is `MyApplication.Helpers.ThingHelper` can be referred to with the partially-qualified name `Helpers.ThingHelper`, and in the other direction, within the `MyApplication.Helpers.ThingHelper` class the `MyApplication.Thing` class can be referred to as just `Thing`.
+From C# 10 onwards, the `global using` directive is a `using` directive which occurs only in one code file but applies (in most cases) to all of the code in the same project.  The .NET 6 templates which use `global using` generally follow the pattern of including a file called `Usings.cs` which contains `global using` directives and nothing else.  Global `using` directives have to be the first code in any file they are in.
 
-Types can be split into "value types" and "reference types", depending on which parameter-passing convention applies to them.  Classes and interfaces are reference types; the other kinds of type, structs and enums, are both value types.  The built-in numeric types (and the `bool` type) are kinds of struct; although the built-in value types have a defined inheritance hierarchy, user-defined struct and enum types cannot inherit from other types.  
+Note: don't confuse `using` directives with `using` statements, which also use the same keyword.  `using` statements are covered below when we talk about the disposable pattern.
+
+If namespaces are related&mdash;that is, have the same root&mdash;then partially-qualified type names can be used, by removing common segments at the start of the namespace name.  For example, if a project has the namespaces `MyApplication` and `MyApplication.Helpers`, then within the class `MyApplication.Thing` the class whose fully-qualified name is `MyApplication.Helpers.ThingHelper` can be referred to with the partially-qualified name `Helpers.ThingHelper`, and in the other direction, within the `MyApplication.Helpers.ThingHelper` class the `MyApplication.Thing` class can be referred to as just `Thing`.
+
+Types can be split into "value types" and "reference types", depending on which parameter-passing convention applies to them.  Classes, interfaces and delegates are reference types, structs and enums are both value types, and record types (which were only introduced relatively recently) can be either.  The built-in numeric types (and the `bool` type) are kinds of struct; the built in `string` type is a reference type and behaves like a class.  Classes and interfaces have a defined inheritance hierarchy: a class can inherit any single non-`sealed` class and can implement any number of interfaces, a reference-type record (or "record class") can inherit from any other single reference-type record, and an interface can inherit any number of other interfaces; this is described more fully below.  Other kinds of type have a fixed inheritance hierarchy which can't be changed by the developer.  All types ultimately inherit from the `object` type, which means that even on, say, a numeric constant, you can call `object` methods such as `.ToString()` and `.Equals()`.
+
+Value record types are referred to as "record structs"  Reference record types are sometimes referred to as "record classes".  However, record classes are not classes, and record structs are not structs.  Because record classes were introduced in C# 9 and were just called "records" at that point, if somebody talks about "records", they may be referring to records in general, or to record classes specifically, depending on context.  Record structs were introduced in C# 10.
 
 Traditionally in C#, one fundamental difference between reference and value types is that reference type expressions and variables can have the value `null` and value type expressions and variables cannot.  In the CLR this is still the case.  However, since C# 2, the language has supported declaring value types as nullable by suffixing the type with a `?` when declaring it: for example, the nullable version of `int` becomes `int?`.  Under the hood this is done by wrapping the value in another struct whose type is (in this example) `Nullable<int>`, and `int?` is shorthand for that type.  For any nullable value type, the `Value` property gives the underlying value cast to a non-nullable type, and the `HasValue` property is `false` if the value is `null` and `true` if not.
 
 Reference types in the CLR are always nullable, but C# 8 introduced the concept of a "nullable context", a section of code where the compiler treats reference types as non-nullable by default unless they are flagged as nullable with the `?` suffix, and can raise an error or a warning (according to the kind of context) if a `null` value is potentially assigned to a non-nullable reference.  Initially this feature had to be deliberately chosen by the developer.  From .NET 6 onwards, this is the default behaviour for new projects, and if you would like the old behaviour you will need to change your project properties.
 
-Types can be nested, to some extent.  Any kind of type can be nested inside a class or a struct, but not inside an enum.  The full name of a nested type incorporates the name of the types it is nested inside: for example, if a class called `Thing` contained a nested type called `Egg`, the full name of the latter is `Thing.Egg` and the fully-qualified name of it is `Thing.Egg` prefixed by `Thing`'s namespace.
+Types can be nested, to some extent.  Any kind of type can be nested inside a class or a struct, but not inside other kinds of type.  The full name of a nested type incorporates the name of the types it is nested inside: for example, if a class called `Thing` contained a nested type called `Egg`, the full name of the latter is `Thing.Egg` and the fully-qualified name of it is `Thing.Egg` prefixed by `Thing`'s namespace.
 
 Each built-in type which can be instantiated has a fully-qualified name (which is the same across all CLI languages) and a C# keyword which can be used as a synonym; the convention is to use the keyword in code where possible.  The built-in types and their keywords are:
 
@@ -223,15 +233,13 @@ All of the built-in numeric types have `MinValue` and `MaxValue` constant fields
 
 The `string` type is immutable, and all "string manipulation" code actually returns a new string.  There is more information on string manipulation below.
 
-Structs which do not contain any references, and other value types, are also referred to as "unmanaged types" as they are not subject to garbage collection themselves, and do not contain any data which needs to be tracked by the garbage collector.  Don't confuse this with "unmanaged objects", which are objects allocated (or part-allocated) by external code and which require the developer to provide additional garbage-collection code: see below for the "`IDisposable` pattern".
-
-Other kinds of types not listed in the above table are interfaces and delegates, both of which are reference types.  Interfaces will be familiar if you have used other object-oriented languages; by convention the names of interface types begin with a capital I.  Delegates are effectively a managed equivalent of a function pointer.
+By convention the names of interface types always begin with a capital `I`; other types do not have any significant naming converntions that apply across every type of that kind.
 
 #### Inheritance and implementation
 
-All user-defined classes and all value types in C# inherit from exactly one other type, referred to as its "base class" or "superclass".  A type that inherits from a given type can be referred to as a "derived type".  All user-defined structs and enums inherit from the built-in type `ValueType`; this cannot be changed.  Classes can inherit from any accessible class that is not declared as `sealed`; if the programmer does not explicitly specify a superclass, the class will inherit from the built-in `object` class.  Interfaces can inherit from other interfaces, but this is optional.
+All user-defined types in C# inherit from exactly one other type, referred to as its "base type" or (for classes) "superclass", but this can not always be a type chosen by the developer.  A type that inherits from a given type can be referred to as a "derived type".  All user-defined value types inherit from the built-in type `ValueType`; this cannot be changed and is not specified in code.  Classes can inherit from any accessible class that is not declared as `sealed`; if the programmer does not explicitly specify a superclass, the class will inherit from the built-in `object` class.  Record classes can inherit from any accessible record class that is not declared as `sealed`, and like classes, inherit from the built-in `object` class if no base record class is specified.  Interfaces can inherit from other interfaces, but this is optional.
 
-Classes and structs may implement any number of interfaces.  A class or struct which inherits a given interface is also considered to be a derived type of the interface.
+Classes, records and structs may implement any number of interfaces.  A class, record or struct which inherits a given interface is also considered to be a derived type of the interface.  Records and record structs cannot implement interfaces which contain methods, because records cannot contain methods.
 
 An object of a given type may be assigned to a variable of any base type&mdash;or, in other words, if you have a variable of a particular type, an object of any derived type may be assigned to it.  In this situation, the type of the variable is the base type, but its *specific type* is the type of the object it contains at the given point in time.  To give an example:
 
@@ -255,7 +263,7 @@ class HensEgg : Egg, IZygote, ICrackable
 }
 ```
 
-It's normal and idiomatic for classes in C# to implement interfaces.  However, structs implementing interfaces is somewhat rarer.  There is a slight performance disadvantage when casting a struct to an interface type; moreover, subtle behavioural differences can be induced when you do so.  Both of these are down to the fact that structs are value types but interfaces are not, and therefore casting the former to the latter leads to boxing and unboxing code being generated.
+It's normal and idiomatic for classes in C# to implement interfaces.  However, structs implementing interfaces is somewhat rarer.  There is a slight performance disadvantage when casting a struct to an interface type; moreover, subtle behavioural differences can be induced when you do so.  Both of these are down to the fact that structs are value types but interfaces are not, and therefore casting the former to the latter leads to boxing and unboxing code being generated.  The same applies to casting any value type to the `object` type.
 
 #### Arrays
 
@@ -272,11 +280,11 @@ int b[,];
 int c[][];
 ```
 
-Arrays are reference types, derived from `System.Array`, and because of this jagged arrays do behave differently to multidimensional arrays.  With the former, you can only guarantee that the "first dimension" of the array actually exists.  If you declare an array of arrays of `int` values, for example, without initialising any data, you will initially create a one-dimensional array of `null` values, where each "slot" in the array could potentially store a reference to an array of `int`s but currently stores nothing.   By contrast, if you create a multidimensional array of `int` values, each "slot" in every dimension is guaranteed to have a value because `int` is a value type.
+Arrays are reference types, derived from `System.Array`, and because of this jagged arrays do behave differently to multidimensional arrays.  With the former, you can only guarantee that the "first dimension" of the array actually exists.  If you declare an array of arrays of `int` values, for example, without initialising any data, you will initially create a one-dimensional array of `null` values, where each item in the array could potentially store a reference to an array of `int`s but currently stores nothing.   By contrast, if you create a multidimensional array of `int` values, each item in every dimension of the array is guaranteed to have a value because `int` is a value type.
 
-The elements of arrays are accessed using the "indexer access operator", `array[i]`.  This operator is also used to access elements of other types by numbered or named index, such as lists or dictionaries.
+The elements of arrays are accessed using the "indexer access operator", `array[i]`.  This operator is also used to access elements of other types by numbered or named index, such as lists or dictionaries.  You can create types which use this operator with any type as its operand type, but this is dissuaded.
 
-Arrays are created with the `new` operator, and must have their size specified at creation time.  They can also be initialised at creation time; if you initialise them, their size is implied from the initialisation data, and the type can be implied too.
+Arrays are created with the `new` operator, and must have their size specified at creation time; they are not resizable.  For jagged arrays, this only applies to the top level of the array.  They can also be initialised at creation time; if you initialise them, their size and type can be implied from the initialisation data.
 
 ```
 int a[] = new int[5];
@@ -297,7 +305,7 @@ int f[][] = { new [] {2, 3}, new [] {4, 9, 5}, new [] {8, 15}, new [] {10, 18, 2
 
 #### Generic types
 
-Reference types can be "generic types", that is, types that contain references to other undefined types, known as "type parameters".  Such types are referred to using type parameters in angle brackets; a commonly-used example is `System.Collections.Generic.List<T>`.  When a variable of the generic type is declared, or when an instance of the type is instantiated, a type has to be provided for all type parameters; for example `List<string>`.  When a new generic type is defined, various restrictions can be applied to its type parameters if necessary.  These are introduced by the `where` keyword when defining the type; here are a couple of examples.
+Reference types can be "generic types", that is, types that depend on other undefined types, known as "type parameters".  Such types are referred to using type parameters in angle brackets; a commonly-used example is `System.Collections.Generic.List<T>`.  When a variable of the generic type is declared, or when an instance of the type is instantiated, a type has to be provided for all type parameters; for example `List<string>`.  When a new generic type is defined, various restrictions can be applied to its type parameters if necessary.  These are introduced by the `where` keyword when defining the type; here are a couple of examples.
 
 ```
 class Nest<T> where T : Egg // T must be an Egg or a class derived from it.
@@ -307,11 +315,11 @@ class Nest<T> where T : Egg // T must be an Egg or a class derived from it.
 class Nest<T> where T : class // T must be a class type
 ```
 
-When declaring method parameters and return types, type parameters can be specified as covariant or contravariant.  See below for more information.
+When declaring generic interfaces, method parameters and return types, type parameters can be specified as covariant or contravariant.  See below for more information.
 
 #### Assemblies
 
-In any CLI language, the executable code is stored in one or more "assemblies"; the code in an assembly can also call code in other assemblies, called "referenced assemblies".  References are resolved at both compile time and run time.  Code can use "reflection" to interrogate the VES at runtime to determine which assemblies have been loaded, what types those assemblies contain, and to read all of the metadata associated with those types and the compiled code that implements them.  The VES does not have to load referenced assemblies, however, until they are required, so this sort of reflection-based interrogation does not necessarily return details about all assemblies referenced by the running assembly.
+In any CLI language, the executable code is stored in one or more "assemblies"; the code in an assembly can also call code in other assemblies, called "referenced assemblies".  References are resolved at both compile time and run time.  At compile time this resolution can be done against a "reference assembly" which only contains stubs of the public content of an assembly; at run time the full assembly is needed.  Code can use "reflection" to interrogate the VES at runtime to determine which assemblies have been loaded, what types those assemblies contain, and to read all of the metadata associated with those types and the compiled code that implements them.  The VES does not have to load referenced assemblies, however, until they are required, so this sort of reflection-based interrogation does not necessarily return details about all assemblies referenced by the running assembly.
 
 Each assembly consists of at least one "module file" which contains code, and can also include additional module files or resource files.  Assemblies can be "strong-named", which means they are crytographically signed, but this is optional.
 

@@ -284,7 +284,7 @@ Arrays are reference types, derived from `System.Array`, and because of this jag
 
 The elements of arrays are accessed using the "indexer access operator", `array[i]`.  This operator is also used to access elements of other types by numbered or named index, such as lists or dictionaries.  You can create types which use this operator with any type as its operand type, but this is dissuaded.
 
-Arrays are created with the `new` operator, and must have their size specified at creation time; they are not resizable.  For jagged arrays, this only applies to the top level of the array.  They can also be initialised at creation time; if you initialise them, their size and type can be implied from the initialisation data.
+Arrays are created with the `new` operator, and must have their size specified at creation time.  For jagged arrays, this only applies to the top level of the array.  They can also be initialised at creation time; if you initialise them, their size and type can be implied from the initialisation data.
 
 ```
 int a[] = new int[5];
@@ -301,6 +301,16 @@ Jagged arrays also have a shorthand initialiser form which omits the outermost `
 
 ```
 int f[][] = { new [] {2, 3}, new [] {4, 9, 5}, new [] {8, 15}, new [] {10, 18, 25} };
+```
+
+Array resizing is not implicit, but one-dimensional arrays can be resized with the `Array.Resize()` method.
+
+An array of type `T` implements the `IEnumerable<T>` interface and can be assigned to the `ICollection<T>` and `IList<T>` interfaces, but because arrays are not implictly resizable, any methods of those interfaces which would cause a resize will throw an exception when called, for example `Add()` and `Clear()`.  The  following code will compile, but will fail at runtime:
+
+```
+int[] data = new[] { 1, 2, 3 };
+IList<int> listData = data;
+listData.Add(4);
 ```
 
 #### Generic types
@@ -325,13 +335,13 @@ Each assembly consists of at least one "module file" which contains code, and ca
 
 ### Some common conventions
 
-- The entry point for an executable project is the method `Program.Main()`.  When you create an executable project, this will be created for you as part of your boilerplate code.
+- Traditionally, the entry point for an executable project is the method `Program.Main()`.  In general, when you create an executable project, the entry point will be created for you as part of your boilerplate code.
 - A Visual Studio project normally corresponds to a single assembly.
 - Within each assembly, all types should belong to the same namespace or to namespaces hierarchically under that "root namespace".
 - The root namespace of an assembly should be the same as the name of the project, and the same as the filename of the assembly's main module file.
-- The filesystem hierarchy of the source code in a project should reflect the hierarchy of namespaces in the assembly.
+- The filesystem hierarchy of the source code in a project should mirror the hierarchy of namespaces in the assembly.
 - Identifiers generally use CamelCase.
-- Type names generally begin with a capital letter.
+- Type names generally begin with a capital letter, as do non-private member names and all method names.
 - In general there should usually be a 1 to 1 mapping between non-nested types and source code files.
 - The name of each source code file should be the same as the name of the type it defines.
 - The above two conventions are modified slightly if a class consists of a mixture of hand-written and generated code, or if classes are very tightly coupled.
@@ -339,6 +349,8 @@ Each assembly consists of at least one "module file" which contains code, and ca
 It is possible to split a class between multiple files using the `partial` keyword.  Because of this, if a class consists of a mixture of hand-written and generated code, it is common to have two files, one for each kind of code.  This is a common pattern seen in Windows Forms development, for example: a class called `MainForm` will be split across the files `MainForm.cs` and `MainForm.designer.cs`, the latter containing the Visual Studio-generated form layout and event binding code, and the former containing the developer-written event handler methods and any other code.
 
 It can also be acceptable to include more than one class in a file if the two are tightly coupled.  For example, there is a standard interface `IComparer<T>` which can define a class to be used to compare the lexicographical ordering of two instances of another class.  If you had defined a `Thing` class, and wanted to also define a `ThingComparer` class that implemented `IComparer<Thing>`, you may consider it acceptable to put them in the same file because of their tightly-coupled nature.  Similarly, if you define an enum type purely to use it as the parameter type of a single method in a single class, you may want to define it as a non-nested type in the same file as the class, or you may want to define it as a nested type within the class.
+
+From C# 10 (.NET 6) onwards, it is possible to have one file in a project contain "top-level statements", statements which are defined outside any method, class or namespace.  If such a file exists, this file (or rather, the first top-level statement in it) is the entry point.  The .NET 6 template for a console app creates a top-level statement file instead of a `Program` class.
 
 ### An outline of class terminology
 
@@ -348,18 +360,21 @@ A class type contains "members", each member being one of the following:
 - Fields
 - Properties
 - Methods
+- Events
+
+The class itself and all of its members have an access level, which determines its visibility to other code.
 
 *Fields* are essentially class-level variables.  Each field has a type, and can optionally have an initialiser.
 
-*Methods* are where the majority of code goes; they are functions attached to classes.  Each method has a return type (which can be `void` if the method returns nothing) and a parameter list, which can be empty.  Method names can be overloaded, by defining multiple methods with the same name but different parameter types.  Overloaded methods do not have to have the same return type, but in C# (like Java) it is not possible to have method overloads that *only* differ by return type.
+*Methods* are where the majority of code goes; they are functions attached to classes.  Each method has a return type (which can be `void` if the method returns nothing) and a parameter list, which can be empty, and can be of variable length (with certain restrictions).  Method names can be overloaded, by defining multiple methods with the same name but different parameter types.  Overloaded methods do not have to have the same return type, but in C# (like Java) it is not possible to have method overloads that *only* differ by return type.
 
-Methods may have generic type, even if their containing class is not generic.  Method parameters may have contravariant generic types, indicated by putting the keyword `in` before the type parameter, and method return types may have covariant generic types, indicated with the `out` parameter.
+Methods may be generic (have type parameters, in other words), even if their containing class doesn't have any type parameters.  Method parameters may have contravariant generic types, indicated by putting the keyword `in` before the type parameter, and method return types may have covariant generic types, indicated with the `out` keyword.
 
-A lambda method is a kind of anonymous method that can be defined within an expression inside a class.  They are defined using the `=>` operator; the syntax for this will be discussed later.  Lambda methods were introduced in C# v3.
+A lambda method is a kind of anonymous method that can be defined within an expression inside a class.  They are defined using the `=>` operator; the syntax for this will be discussed later.  Lambda methods were introduced in C# 3.
 
-*Properties* are, at the CIL level, just a method or a pair of methods linked by an identifier, which can then be called using the same syntax as used to access a field - and in early versions of C# that is all they were.  In C# version 3 and above the compiler can automatically generate code that, in early versions, had to be added as boilerplate by the developer; version 7.0 introduced new syntax extensions that enable properties to be defined as lambda methods.
+*Properties* are, at the CIL level, just a method or a pair of methods linked by an identifier, which can then be called using the same syntax as that used to access a field&mdash;and in early versions of C# that is all they were.  In C# version 3 and above the compiler can automatically generate code that in earlier versions had to be added as boilerplate by the developer; version 7.0 introduced new syntax extensions that enable properties to be defined as lambda methods.
 
-Each class has one or more "constructors", which are methods that are called when instantiating the class.  If the programmer does not define any constructors, the compiler implicitly inserts a constructor with no parameters.
+Each class has one or more "constructors", which are methods that are called when instantiating the class.  If the programmer does not define any constructors, the compiler implicitly inserts a constructor with no parameters, whose access level matches the access level of the class.
 
 Each class can, optionally, have a "finalizer", which is similar to a C++ destructor and is defined with a similar syntax.  I'll talk about these more in the section on garbage collection and object lifecycles, but they are relatively rarely used.
 
@@ -372,27 +387,29 @@ The allowed access modifiers (and combinations) and their meaning are:
 | Modifier(s)          | Allowed at top level | Meaning                                                                                |
 | -------------------- | -------------------- | -------------------------------------------------------------------------------------- |
 | `public`             | Yes                  | Unrestricted access from any code.                                                     |
-| `protected`          | No                   | Can only be accessed from the same class or derived classes.                           |
+| `protected`          | No                   | Can only be accessed from the same type or derived types.                              |
 | `internal`           | Yes                  | Can only be accessed from the same assembly and potentially specific other assemblies. |
 | `protected internal` | No                   | Equivalent to `protected` OR `internal`.                                               |
 | `private`            | No                   | Can only be accessed from the same type.                                               |
-| `private protected`  | No                   | Can only be accessed from the same type, or derived classes within the same assembly.  |
+| `private protected`  | No                   | Can only be accessed from the same type, or derived types within the same assembly.    |
 
-The `private protected` modifier combination was only introduced in C# v7.2, in late 2017.
+The `private protected` modifier combination was introduced in C# 7.2.
 
 The only access modifiers that can be used on top-level types&mdash;any non-nested types in other words&mdash;are `public` and `internal`.  The default access level for top-level types is `internal`; it is considered good practice to specify it explicitly, although generated code often does not do so.
 
-The default access level for members of classes and structs, including that of nested types, is `private`.  You can change the access level of members of structs, and of all members of classes apart from finalizers.  You cannot set the access level of a class finalizer.
+The default access level for members of classes and structs, including that of nested types, is `private`.  You can change the access level of members of structs, and of all members of classes apart from finalizers.  You cannot set the access level of a class finalizer.  The default access level for members of records depends on how the record is defined.
 
 The allowable access levels of the members of a struct are `public`, `internal` or `private`.  Because structs cannot have other types derived from them, the `protected` access modifier would be meaningless.
 
-A type member's access level cannot have wider access than the access level of the containing type.  In other words, if a type is `internal`, none of its members can be `public`.  Similarly, if a method is `public` its parameters' types must also all be `public`.
+A type member's access level cannot have wider access than the access level of the containing type.  In other words, if a type is `internal`, none of its members can be `public`.  Similarly, if a method is `public` its parameters' types must also all be `public`.  However, the access level of a nested type can be wider than its containing type.
 
-You cannot modify the access level of the values of enum types or the members of interfaces.  Officially they always default to `public`, but in practice they effectively default to the access level of the containing type (which has to be either `public` or `internal`).
+If a property has two accessor methods, they do not have to have the same access level.
+
+You cannot modify the access level of the values of enum types or the members of interfaces.  Officially they always default to `public`, but in practice they effectively default to the access level of the containing type (which has to be either `public` or `internal`).  When a class or struct implements an interface, the implementing members' access level must match the type's access level.
 
 Access levels are checked at both compile time and run time, but do not guarantee secrecy.  Under default circumstances, if a piece of code has a reference to an object, it can examine any member of that object and call any method on it, whatever the access level, using reflection techniques.  This can be restricted using the Code Access Security feature of .NET Framework, but this is rarely used and is not available in .NET (or .NET Core).
 
-As I said in the table above, `internal` types or members can only be accessed from the same assembly or from specific assemblies (notwithstanding that they can also be accessed from any code using reflection as per the previous paragraph, too).  It is possible to add code to an assembly so that other specifically-listed assemblies can access all of the internal code within the first assembly.  If the first assembly is strong-named, the accessing assemblies also need to be strong-named.
+As I said in the table above, `internal` types or members can only be accessed from the same assembly or from specific assemblies (putting aside the fact that they can also be accessed from any code using reflection as per the previous paragraph, too).  It is possible to add code to an assembly so that other specifically-listed assemblies can access all of the internal code within the first assembly.  If the first assembly is strong-named, the accessing assemblies also need to be strong-named.
 
 ### More detail on class syntax
 
@@ -408,41 +425,42 @@ namespace MyExample
 }
 ```
 
-The above defines a class called `Egg`, fully-qualified name `MyExample.Egg`, which has the `public` access level.  As discussed above, its base class is `object`.
+The above defines a class called `Egg`, fully-qualified name `MyExample.Egg`, which has the `public` access level.  Because it doesn't specify its base class, its base class is `object`.
 
 #### Fields
 
-Fields are class-level variables, and can be declared with just a type and an identifier.  They can also include an initialiser.
+Fields are class-level variables, and can be declared with just a type and an identifier.  They can also include an initialiser.  They can be declared `readonly`, which means they can only be set in an initialiser or a constructor.  All fields without an initialiser will be initialised to the default value of their type.
 
 ```
 namespace MyExample
 {
     public class Egg
     {
-        double _length;      // no initialiser
-        double _width = 0d;  // initialiser
+        double _length;                            // No initialiser.
+        double _width = 0d;                        // Initialiser
+        double readonly _materialThickness = 0.05; // Cannot be changed.
     }
 }
 ```
 
-Both of the fields in the above example will be `private` as they have no access modifier.
+All of the fields in the above example will be `private` as they have no access modifier.
 
-When declaring any variable or field, you can use the `var` keyword instead of a type if the compiler can deduce the type from the initialisation expression.  Some developers would consider it bad form to use `var` if the type is not immediately human-readable&mdash;if, for example, the initialisation expression is a method call.  If `var` is used to declare a non-initialised field, the compiler will raise an error as there is no context to infer type from.
+When declaring any variable or field, you can use the `var` keyword instead of a type if the compiler can deduce the type from the initialisation expression.  Some developers would consider it bad form to use `var` if the type is not immediately human-readable&mdash;if, for example, the initialisation expression is a method call.  `var` cannot be used to declare a non-initialised field.
 
 ```
 namespace MyExample
 {
     public class Egg
     {
-        var _length = 0d;  // _length is of type double, due to the constant initialiser
-        var _width;        // syntax error - there is no way to infer the type of _width
+        var _length = 0d;  // _length is of type double, due to the constant initialiser.
+        var _width;        // Syntax error! There is no way to infer the type of _width.
     }
 }
 ```
 
 Generally speaking, the naming convention is for non-private field names begin with a capital letter.  A common convention for private field names is for them to begin with an underscore.
 
-Fields are accessed using the `.` operator.
+Instance fields are accessed using the `.` operator on an instance of the containing type.
 
 ```
 namespace MyExample
@@ -458,15 +476,15 @@ namespace MyExample
 
 #### Constructors
 
-The above example will have an implicit parameterless constructor inserted by the compiler, with the same access level as the class itself.  We can however define any number of constructors explicitly, as long as they have different parameter signatures.  A constructor's name is the same as the class name.
+The above example will have an implicit parameterless constructor inserted by the compiler, with the same access level as the class itself.  We can however define any number of constructors explicitly, as long as they have different parameter signatures.  A constructor's name is the same as the class name, and its return type is implicit.  If any constructors are explicitly defined, the implicit parameterless constructor is not created.
 
 ```
 namespace MyExample
 {
     public class Egg
     {
-        double _length;
-        double _width;
+        double readonly _length;
+        double readonly _width;
 
         public Egg(double size)
         {
@@ -482,7 +500,9 @@ namespace MyExample
 }
 ```
 
-From C# 7 onwards, constructors that contain a single statement can be defined using the `=>` operator instead of with a block.
+Constructor parameter names conventionally begin with a lower case letter for classes and structs, and an upper case letter for records (of either type); the reason behind this will be explained under the section on records below.
+
+From C# 7 onwards, constructors that contain a single expression statement can be defined using the `=>` operator instead of with a block.
 
 ```
 namespace MyExample
@@ -502,8 +522,6 @@ namespace MyExample
     }
 }
 ```
-
-Note that now we have defined constructors explicitly, the compiler no longer inserts an implicit constructor, so if any code was calling the parameterless constructor it will now be broken.
 
 There are various things that can be done with constructor parameters, such as giving them default values or calling them by name, which also apply to method parameters and are described below under "Methods".
 
@@ -538,7 +556,7 @@ From C# 9.0 onwards, you can omit the type name when calling the constructor, if
 Egg egg1 = new();        // These are both equivalent to the above in C# 9.0
 Egg egg2 = new(6d, 4f);  // but fail in older versions.
 
-var egg3 = new();        // This is a syntax error, because we haven't specified a type at all.
+var egg3 = new();        // Syntax error! We haven't specified a type at all.
 ```
 
 A class's constructors are not inherited from its ancestors.  The only constructors available for a class are those defined in the class itself (or the parameterless constructor if there are none defined), not those defined in its base classes.  However, when you call a constructor, it always calls a constructor of the immediate superclass first, before it executes.  This constructor will then call its superclass constructor before it executes, and so on.  The end effect is that a chain of constructors will execute, starting with the constructor of `object` (which is parameterless) and then executing the constructors of derived types in order, until the constructor of the specific type is executed last.
@@ -564,7 +582,7 @@ namespace MyExample
 
     public class ChocolateEgg : Egg
     {
-        // This code will not compile, because it creates an implicit call to the
+        // This code will not compile, because it would need to make an implicit call to the
         // nonexistent parameterless Egg constructor.
         public ChocolateEgg() { }
     }
@@ -654,7 +672,7 @@ ChocolateEgg parameterless constructor completed.
 
 #### Methods
 
-Methods are defined similarly to constructors, but they have a return type and a method name.  If a method returns nothing, its return type is `void`.  By convention all method names begin with a capital letter, although this is sometimes ignored by generated boilerplate code, for example for event handlers.
+Methods are defined similarly to constructors, but they have a return type and a method name.  If a method returns nothing, its return type must be defined as `void`.  By convention all method names begin with a capital letter, although this is sometimes ignored by generated boilerplate code, for example for event handlers.  Traditionally, all methods were defined as "block methods" with a block of code&mdash;which in the next example happens to be empty.
 
 ```
 namespace MyExample
@@ -671,11 +689,11 @@ namespace MyExample
 
 Variables declared inside a method are *local variables*.  They are private to the method, cannot be accessed outside the method and cannot retain their value between invocations&mdash;there is no direct equivalent in C# to a C static local variable.  By convention local variable names begin with a lower-case letter.
 
-Within a method, the special keyword `this` is a reference to the current instance of the class.  This can be used to distinguish within a method or constructor to distinguish between class fields and local variables or method parameters which have the same names: if `thing` is the name of both a class field or property and a method parameter or local variable, then unqualified `thing` is the local variable and `this.thing` is the class field.
+Within a method, the special keyword `this` is a reference to the current instance of the class.  This can be used to distinguish within a method or constructor to distinguish between class members, and local variables or method parameters, which have the same names: if `thing` is the name of both a class field or property and a method parameter or local variable, then unqualified `thing` is the local variable and `this.thing` is the class member.
 
-Methods are called using the `.` operator.  In method calls, the parameters are enclosed in brackets.  One common idiomatic C# style is "fluent code", in which a method or methods all return either `this`, or an object representing some form of transformation of `this`.  This enables you to chain a sequence of method calls together in a single statement, without declaring variables to store intermediate results.  This style of programming is often used in LINQ code, explained below under "Iteration".
+Methods are called using the `.` operator.  In method calls, the parameters are enclosed in brackets.  One common idiomatic C# style is "fluent code", in which methods return either `this`, or an object representing some form of transformation of `this`.  This enables you to chain a sequence of method calls together in a single statement, without declaring variables to store intermediate results.  This style of programming is often used in LINQ code, explained below under "Iteration".
 
-Control is allowed to drop out of the end of a `void` method, or you can return from an earlier place in the method body with a `return;` statement.  However, methods with other return types must return with a `return` statement that includes an expression to provide the return value.  If you create a method that has a return type, and a possible code path through the method that does not return a value, you will get a compile-time error.
+Control is allowed to drop out of the end of a `void` method, or you can return from an earlier place in the method body with a `return;` statement.  However, block methods with other return types in general must return with a `return` statement that includes an expression to provide the return value.  If you create a method that has a return type, and a possible code path through to the end of the method that does not return a value, you will get a compile-time error.  The method doesn't have to end with a `return` statement if the compiler can detect that the end of the method body is unreachable.
 
 Like a constructor, the parameter list of a named method can contain any reasonable number of parameters, but must specify the type of each.
 
@@ -687,41 +705,57 @@ public int ExampleMethod(int x, int y, double twist)
 }
 ```
 
-From C# 6 onwards, methods that contain a single statement can be defined using the `=>` operator instad of a block.
+From C# 6 onwards, methods that contain a single return statement can be defined using the `=>` operator instad of a block.  The `return` keyword does not need to be included; the method implicitly returns the value of the expression.
 
 ```
 public int Double(int x) => x * 2;
+
+// ...is the equivalent of:
+public int DoubleBlock(int x)
+{
+    return x * 2;
+}
 ```
 
-Methods can be overloaded, by specifying methods that share a name but have different parameter types.  The names of the parameters and the return type of the method do not count as differences as far as method overloading is concerned.  However, if a method is overloaded with different parameter types, the overloads may have different return types.
+Methods can be overloaded, by specifying methods that share a name but have different parameter types.  The names of the parameters and the return type of the method do not count as differences as far as method overloading resolution is concerned.  However, if a method is overloaded with different parameter types, the overloads may have different return types.
 
 You can specify default values for some "optional" parameters, so long as all following parameters also have default values.  When you call a method with multiple optional parameters, you must specify all parameters up to and including the last parameter you want to specify
 
 ```
+// This method can be called as ExampleMethod(x, y) or as ExampleMethod(x, y, twist)
 public int ExampleMethod(int x, int y, double twist = 0d) { ... }
-// ^ can be called as ExampleMethod(x, y) or as ExampleMethod(x, y, twist)
 
-public int ExampleMethod(int x = 0, int y = 0, double twist = 0d) { ... }
-// ^ can be called as ExampleMethod(), ExampleMethod(x), ExampleMethod(x, y) or as ExampleMethod(x, y, twist)
+// This method can be called as ExampleMethod(), ExampleMethod(x), ExampleMethod(x, y) or as ExampleMethod(x, y, twist)
 // but not, for example, as ExampleMethod(twist)
+public int ExampleMethod(int x = 0, int y = 0, double twist = 0d) { ... }
 
+// This is a syntax error!
 public int ExampleMethod(int x, int y = 0, double twist) { ... }
-// ^ syntax error
 ```
 
-Note that when you call a method using the default values for optional parameters, the values of the optional parameters are resolved and hard-coded into your CIL bytecode, at the calling location, at compile time.  Because of this, if you publish an API that contains public methods with optional parameters, it is a bad idea to change the parameters' default values: it requires the calling code to be recompiled for the change to take effect, not the code where the change was made.
+Note that when you call a method using the default values for optional parameters, the values of the optional parameters are computed and hard-coded into your CIL bytecode, at the calling location, at compile time.  This has two significant implications.  Firstly, the values of the optional parameters must be compile-time constants&mdash;you can't use the value of a method call as a default parameter value, and most reference type parameters (other than `string`) cannot have default values.  The second significant implication is that, if you change a parameter's default value, the *calling* code needs to be recompiled for the change to take effect, not the code which was actually changed.  Because of this, if you publish an API that contains public methods with optional parameters, it is a bad idea to ever change the parameters' default values.
 
-Methods can have genuinely variable numbers of parameters, by making the final parameter an array type and declaring it using the `params` keyword.  If, say you declare the following method:
+Methods can have genuinely variable numbers of parameters, so long as all of the variable parameters are of the same type, by making the final parameter an array type and declaring it using the `params` keyword.  If, say you declare the following method:
 
 ```
-public ExampleMethod(params int[] variableParams) { ... }
+public void ExampleMethod(params int[] variableParams) { ... }
 ```
 
-then it can be called with any number of integer parameters, each of which can be accessed by position as a member of the `variableParams` array.
+then it can be called with any number of integer parameters (including none), each of which can be accessed by position as a member of the `variableParams` array.
 
-Obviously, with the above where we specify the parameter as an array of a value type, all of the parameters have to be of the same type.  A class or interface parameter can enable parameters of any derived type to be passed, but the only way to have a variable number of parameters of any type is by declaring the `params` parameter to be of type `object[]`.  You can use type-sniffing later to confirm the types of the variable parameters; this is described under "Reflection" below.
+If the variable parameter type is an array of a reference type, it enables parameters of any derived type to be passed, but the only way to have a variable number of parameters of any type is by declaring the `params` parameter to be of type `object[]`.  You can use reflection-based type-sniffing techniques within the method to discover the specific types of the variable parameters; this is described under "Reflection" below.
 
-Beware that if you have an overloaded method and one of those overloads has a `params` parameter, particularly `params object[]`, then the compiler's overload resolution may produce results you didn't expect.
+Methods with variable parameters can also be called explicitly with an array.  The method declared above could be legally called in any of the following ways:
+
+```
+ExampleMethod();
+ExampleMethod(1);
+ExampleMethod(1, 2, 3, 7);
+int[] values = new[] { 1, 3, 2, 7 };
+ExampleMethod(values);
+```
+
+Beware that if you have an overloaded method and one of those overloads has a `params` parameter, then the compiler's overload resolution may sometimes produce results you didn't expect.  This is particularly the case if the method has an overload that takes an `IEnumerable<T>` or `IList<T>` parameter as well as a `params T[]` parameter, or if the method takes a `params object[]` parameter.  
 
 The method-calling examples above show methods called using positional parameters; this is the most common calling code convention.  Methods can also be called using named parameters (with the parameters in any order) or by a mixture of named and positional parameters.  In the latter case, the supplied positional parameters must come first, starting with the first parameter to the method, and within the range of positional parameters supplied, none can be skipped.
 
@@ -734,9 +768,9 @@ public int ExampleMethod(int x, int y, double twist) { ... }
 // but *not* as ExampleMethod(twist: 7d, 1, 2) or as ExampleMethod(1, 7d, y: 2)
 ```
 
-As stated earlier, the classification of types into reference types and value types reflects how method-calling appears to behave.  Technically, however, all parameters are passed by value; it is just that reference type variables consist of references to objects, so when the reference is passed by value it still refers to the original object.  
+In some ways, the classification of types into reference types and value types reflects how method-calling appears to behave.  Technically, however, all parameters are passed by value; it is just that reference type variables consist of references to objects, so when the reference is passed by value it still refers to the same instance.  You can see this if you change the value of a reference-type parameter within a method to refer to a different instance: the reference in the calling code will still refer to the original instance.  
 
-C# does, however, implement true pass-by-reference if the parameter is declared as `ref` in both the declaration and the calling code.  As you would expect, if the value of a by-value parameter is changed inside the method the change is not visible to the calling code, but if the value of a by-reference parameter is changed inside the method, it is.  `ref` parameters must be initialised before use, and they must be variables (either local variables or fields); they cannot be constants, properties or expressions.
+C# does, however, implement true pass-by-reference if the parameter is declared as `ref` in both the method definition and the calling code.  As you would expect, if the value of a by-value parameter is changed inside the method the change is not visible to the calling code, but if the value of a by-reference parameter is changed inside the method, it is.  `ref` parameters must be initialised before use, and they must be variables (either local variables or fields); they cannot be constants, properties or expressions.
 
 Consider the following example methods
 
@@ -771,13 +805,13 @@ IncrementByRef(ref i);
 */
 ```
 
-There are two other ways to pass parameters by reference: `out` and `in`.  `out` is for parameters that have not necessarily been initialised before the method call; the method *must* modify them before it completes.  `in` parameters, which were only introduced in C# v7.2, are the reverse: they guarantee that the method will not modify the parameter.  They can be used as an optimisation to save copying a parameter which is treated as read-only inside a method, which can be significant if the parameter is a large struct.
+There are two other ways to pass parameters by reference: `out` and `in`.  `out` is for parameters that have not necessarily been initialised before the method call; the method *must* modify them before it completes.  `in` parameters, which were introduced in C# 7.2, are the reverse: they guarantee that the method will not modify the parameter.  They can be used as an optimisation to save copying a parameter which is treated as read-only inside a method, which can be significant if the parameter is a large struct or record struct.
 
 Both `out` and `in` parameter modifiers are verified at compile-time: you will get a compilation error if a method with any `out` parameters has a code path which does not modify all of the parameters or tries to access any of them before they are modified; and you will also get a compilation error if a method tries to modify an `in` parameter, or if you call a method with an uninitialised variable as an `in` parameter.
 
 Like `ref`, `out` must be specified both in the method declaration and at the calling site, and `out` parameters must be variables.  `in` must be specified in the method declaration, but does not by default have to be specified at the calling site.  Indeed, using `in` at the call site does constrain the compiler in ways which force the parameter to be a variable, in the same way as `ref`; not using `in` at the call site allows constants, expressions and properties to be used as `in` parameters.  In this case the compiler will generate code which passes a reference to an anonymous temporary variable.
 
-Reference types can also be passed by reference, instead of passing the reference by value.  This is only really relevant in situations where a reference type parameter is reassigned.  Strictly speaking assignment is the only operation that can change the value of the reference that is stored in a reference type variable, as opposed to changing the fields and properties of the object the reference is to.  Passing a reference type by reference is most useful when dealing with string parameters.  `string` objects are an immutable reference type, so "changes to a string" actually create a new string object.  Because of this, if a developer is unfamiliar with C#, it is easy to write "string modification" code in which the modifications are not actually visible to the caller.  Strings and their specific behaviour are discussed further below.
+Reference types can also be passed by reference, instead of passing the reference by value.  This is only really relevant in situations where a reference type parameter is reassigned.  Strictly speaking assignment is the only operation that can change the value of the reference that is stored in a reference type variable, as opposed to changing the fields and properties of the object the reference is to.  Passing a reference type by reference is most useful when dealing with string parameters.  `string` objects are an immutable reference type, so "changes to a string" actually create a new string object.  Strings and their specific behaviour are discussed further below, but it's worth remembering that if a developer is unfamiliar with C#, it is easy to write "string modification" code in which the modifications are not actually visible to the caller.
 
 Passing parameters by value or by reference counts as a difference for method overloading, but passing parameters by reference in different ways does not.  In other words, this example works:
 
@@ -801,7 +835,7 @@ public class Example
 }
 ```
 
-If you are calling a method with an out parameter, but you do not need to set it beforehand or use its result afterwards, then since C# 7.0 you can use a *discard variable* as the name of the variable in your call.  As we mentioned, the discard variable name is a single underscore.
+If you are calling a method with an `out` parameter, but you do not need to set it beforehand or use its result afterwards, then (since C# 7.0) you can use a *discard variable* as the name of the variable in your call.  As mentioned above, the discard variable name is a single underscore.
 
 For example, one common pattern for converting a number to a string is the `int.TryParse()` method.  It takes two parameters: the first is a string, and the second is an `out int` parameter.  The normal way to call it is as follows:
 
@@ -810,7 +844,7 @@ string str = "83";
 int x;
 bool success = int.TryParse(str, out x); // success will be true, x will be 83.
 str = "some words";
-success = int.TryParse(str, out x); // success will be false, x will be unmodified.
+success = int.TryParse(str, out x); // success will be false, x will be 0.
 ```
 
 However, if you just want to find out whether or not the string is a valid number, but do not care about its actual value, you could use a discard variable for the out parameter, like this:
@@ -820,15 +854,15 @@ string str = "37";
 bool success = int.TryParse(str, out _); // success will be true.
 ```
 
-Note that you do not declare `_`&mdash;indeed, this only works if `_` has not been declared as a variable (or anything else).  For compatibility with earlier code, if you declare `_` then it is a regular variable and not the discard variable.
+Note that you do not declare `_`&mdash;indeed, this only works if `_` has not been declared as a variable (or anything else).  For compatibility with earlier code, if you declare `_` then it becomes a regular variable and is not the discard variable.
 
 Various other modifiers can be applied to methods, but I will describe those in full later, after introducing the relevant concepts.
 
 #### Properties
 
-A property has a type and a name, and essentially (at the CLI level, and in C# v1) consists of an optional `get` method and an optional `set` method.  It is accessed like a field; access that would read from a field instead calls the `get` method, and access that would write to a field calls the `set` method.  The `get` method has no parameters and its return type matches the type of the property; the `set` method returns `void` and has one parameter, named `value`, which also matches the type of the property.  Neither method has to have a method signature declared in the usual way.  By convention, property names begin with a capital letter whatever their access level.  Properties that only have a `get` method are read-only; properties that only have a `set` method, which are much rarer, are write-only.
+A property has a type and a name, and essentially (at the CLI level, and in C# 1) consists of an optional `get` method and an optional `set` or `init` method.  It is accessed like a field; access that would read from a field instead calls the `get` method, and access that would write to a field calls the `set` method.  The `get` method has no parameters and its return type matches the type of the property; the `set` method returns `void` and has one parameter, named `value`, which also matches the type of the property.  Neither method has to have a method signature declared in the usual way.  By convention, property names begin with a capital letter whatever their access level.  Properties that only have a `get` method are read-only; properties that only have a `set` method, which are much rarer, are write-only.  The `init` accessor method (introduced in C# 9) behaves like a `set` accessor, but can only be called from the containing type's constructor, giving the property similar behaviour to a `readonly` field.
 
-Originally in C#, that was all there was to say about properties; actually *using* properties required the developer to insert boilerplate "backing fields" and methods.  You still might see this style of C# code in the wild:
+Originally in C# 1, that was all there was to say about properties; actually *using* properties required the developer to insert boilerplate "backing fields" and methods.  You still might see this style of C# code in the wild:
 
 ```
 public class Thing
@@ -854,7 +888,14 @@ public class Thing
 }
 ```
 
-The above will compile to very similar CIL code to the previous example, but the backing field is now anonymous, and inaccesible to other code without going through the property itself.  This is referred to as an *auto-implemented property*.  Because the backing field is inaccessible, you can't have a property that is only half auto-implemented: if one of the methods is auto-implemented, the other must be too.  The main impact of this is that auto-implemented properties must technically be read-write, although there are limitations described below that can be used to create immutable auto-implemented properties.
+The above will compile to very similar CIL code to the previous example, but the backing field is now anonymous, and inaccesible to other code without going through the property itself.  This is referred to as an *auto-implemented property*.  Because the backing field is inaccessible, you can't have a property that is only half auto-implemented: if one of the methods is auto-implemented, the other must be too.  From C# 9 onwards, you can create a read-only auto-implemented property by declaring it to have an `init` accessor instead of a `set` accessor.
+
+```
+public class Thing
+{
+    public bool Theft { get; init; }
+}
+```
 
 Properties can potentially be more complex than this, and can potentially include any sort of logic in their get and set methods, as in this example:
 
@@ -875,7 +916,7 @@ public class Thing
 }
 ```
 
-In this example, `Theft` and `Murder` are both straightforward auto-implemented Boolean properties; `Illegality` is a read-only property that will be `true` if either theft or murder have occurred.
+In this example, `Theft` and `Murder` are both straightforward mutable auto-implemented Boolean properties; `Illegality` is a read-only property that will be `true` if either theft or murder have occurred.
 
 Bear in mind, when creating a property that has complex logic, that it is probably a bad idea to create a property that does not behave in an intuitive and straightforward way to a developer who hasn't seen its implementation.  Particularly, you should generally be able to expect that if you store a value or object in a read-write property, then retrieve its value, you will (barring external events) get the same value or object back again.
 
@@ -892,7 +933,7 @@ public class Thing
 }
 ```
 
-Note that this syntax, whilst shorter, can in some circumstances make it harder to spot that this is a property and that it is read-only, as the `get` keyword has disappeared.
+Note that this syntax, whilst shorter, can in some circumstances make it harder to spot that this is a read-only property, as the `get` keyword has disappeared.  The syntactic difference between a read-only property and a parameterless method here is solely that the method would have `()` after its name. 
 
 C# 7.0 and up allow you to implement read-write or write-only properties with lambda expressions in a similar way.  The earlier example with private backing variable can now be written in the following style:
 
@@ -911,7 +952,7 @@ public class Thing
 
 This can be useful for read-write properties that do require relatively simple additional logic.
 
-All of the properties in the examples above have had the same access level for both `get` and `set` methods, and this is set on the property itself.  It is however possible for either method to have a more restrictive access level than the property.  The most common use of this is to make an auto-implemented property effectively read-only to code in other classes, by giving it a private `set` method.  The following two examples are functionally identical in normal code:
+All of the properties in the examples above have had the same access level for both `get` and `set` methods, set on the property itself.  It is however possible for either accessor method to have a more restrictive access level than the other, by declaring an access level on the accessor itself.  The most common use of this is to make an auto-implemented property effectively read-only to code in other classes, by giving it a private `set` method.  The following two examples are functionally identical in normal code:
 
 ```
 public class Thing
@@ -929,7 +970,7 @@ public class Thing
 }
 ```
 
-In the first example `Theft` is a read-only property with a private backing field; in the second, it is an auto-implemented read-write property with a private `set` method.  In both cases the property value can only be changed in the normal way by code within the `Thing` class; in the first, by changing the backing field, and in the second by changing the property value directly.  As was briefly mentioned above in the section on access levels, in both cases the value can be changed by reflective code; in that situation, slightly different code would be needed between the two cases.
+In the first example `Theft` is a read-only property with a private backing field; in the second, it is an auto-implemented read-write property with a private `set` method.  In both cases the property value can only be changed in the normal way by code within the `Thing` class; in the first, by changing the backing field, and in the second by changing the property value directly.  As was briefly mentioned above in the section on access levels, in both cases the value can be changed by reflective code; in that situation, slightly different code would be needed between the two cases.  Before C# 9 this pattern was commonly used to implement something close to immutable properties, by making the set accessor private and trusting the other code within the same type not to call it; however, the `init` accessor now gives us true immutable properties.
 
 You can set properties immediately after calling a constructor using "brace initialiser syntax", also called "object initialiser syntax.  The following code:
 
@@ -937,16 +978,18 @@ You can set properties immediately after calling a constructor using "brace init
 Thing theThing = new Thing() { Theft = true };
 ```
 
-is effectively identical to:
+is partially identical to:
 
 ```
 Thing theThing = new Thing();
 theThing.Theft = true;
 ```
 
-Where the constructor is parameterless, the constructor parentheses can be omitted when using brace initialiser syntax.  The above could also be written `Thing theThing = new Thing { Theft = true };`
+The big difference here is that if `Theft` is defined with an `init` accessor, brace initialiser syntax will work but the second form will not.  If `Theft` is defined with a private `set` or `init` accessor, neither of the above forms will work unless this code is inside the `Thing` type. 
 
-As above, from C# 9 onwards you can alternatively omit the type name and write `Thing theThing = new() { Theft = true };`.  However, you can't omit *both* parentheses and type name at the same time&mdash;this would clash with the syntax for an anonymous type declaration, which is described below.
+Where the constructor is parameterless, the constructor parentheses can be omitted when using brace initialiser syntax.  The first example above could also be written `Thing theThing = new Thing { Theft = true };`
+
+From C# 9 onwards you can alternatively omit the type name and write `Thing theThing = new() { Theft = true };`.  However, you can't omit *both* parentheses and type name at the same time&mdash;this would clash with the syntax for an anonymous type declaration, which is described below.
 
 Since C# 6, you can also set the default value of an auto-implemented property when it is declared:
 
@@ -957,39 +1000,13 @@ public class Thing
 }
 ```
 
-#### Immutable properties
-
-I said above that auto-implemented properties are all technically read-write.  However, you can create almost-immutable properties by only declaring an auto-implemented `get` method:
-
-```
-public class Thing
-{
-    public bool Theft { get; }
-
-    public Thing(bool theft) { Thing = theft; }
-}
-```
-
-The compiler will still create a private set method, but will only allow it to be called inside the type's constructor as shown in the example.
-
-Since C# 9, you can also create immutable properties using an `init` method, like this:
-
-```
-public class Thing
-{
-    public bool Theft { get; init; }
-
-    public Thing(bool theft) { Thing = theft; }
-}
-```
-
-The main difference between this and the previous example is that properties with `init` can be set at declaration.  `public bool Theft { get; init; } = false;` is legal code whereas `public bool Theft { get; } = false;` is not.
+This pattern can also be used with properties that have an `init` accessor.
 
 #### Hidden, virtual and overridden methods and properties
 
-When one class inherits from another, all of the fields, properties and methods of its base classes that are not private (either explicitly or implicitly) are accessible in the derived class.  Private fields, properties and methods of the base classes are not accessible in the derived class.
+When one class inherits from another, all members of its base classes that are not private (either explicitly or implicitly) are accessible in the derived class.  Private fields, properties and methods of the base classes are not accessible in the derived class.
 
-In code elsewhere, all of the accessible fields, properties and methods of the base class are also accessible in any derived class.
+In code elsewhere, all of the accessible fields, properties and methods of the base classes are also accessible in any derived class.
 
 In both of the above cases, by default, the implementation remains in the base class.
 
@@ -1033,7 +1050,7 @@ Chocolate cracked
 Shell smashed
 ```
 
-Note that when the `ChocolateEgg` instance is assigned to a variable whose type is its base class, the base class implementation of `CrackShell()` is called.
+Note that when the `ChocolateEgg` instance is assigned to a variable whose type is its base class, and then a method call is made through that variable, the base class implementation of `CrackShell()` is called.
 
 If a method in a base class is declared as `virtual`, then a method with the same name and type signature in a derived class will *override* the base method, instead of hiding it.  If we modify the previous example to make the `CrackShell()` method virtual:
 
@@ -1065,11 +1082,11 @@ Chocolate cracked
 
 This time, the method invocation always calls the implementation in the specific type, whatever the type of the reference it is called through.  With non-virtual method calls, (called "static invocation" in the CLI standard, but this isn't the same thing as calling a C# static method), the implementation to be called is fixed at compile-time and written into the CIL code.  With virtual invocation, the implementation to be called is determined by the VES at run-time.  CIL actually has different bytecode instructions for static and virtual calls.
 
-Like methods, properties can also be declared `virtual`, and virtual properties can be overridden using `override`.  Likewise, properties can hide the properties of base classes with the `new` modifier keyword.  If a read-write property is virtual, you have to declare the entire property to be virtual; you cannot, for example, have a virtual `get` method and a non-virtual `set` method.  The behaviour of hidden or overridden properties is exactly the same as the behaviour of hidden or overridden methods.
+Like methods, properties can also be declared `virtual`, and virtual properties can be overridden using `override`, instead of being hidden.  Likewise, properties can hide the properties of base classes with the `new` modifier keyword.  If a read-write property is virtual, you have to declare the entire property to be virtual; you cannot, for example, have a virtual `get` method and a non-virtual `set` method.  The behaviour of hidden or overridden properties is exactly the same as the behaviour of hidden or overridden methods.  A property that hides another can have a different type, access level and/or different accessors to the hidden property, but a property that overrides another must have the same type, access level and accessors as the one it is overriding.
 
 You cannot declare a private method or property to be virtual; this would be meaningless. Because a private member can't be accessed from a derived class, it can't be overridden.  If you try to, you will get a compiler error.
 
-You can't use `override` if the method you are trying to override isn't declared as `virtual`; this is also a compile-time error.
+You can't use `override` if the method you are trying to override isn't declared as `virtual` (or `override`); this is also a compile-time error.
 
 Methods and properties that are modified with `override` implicitly inherit their "virtual-ness"; if you try to declare them as `virtual override` you will get a compiler error on the grounds that the `virtual` modifier is superfluous.  If you want to change this, see below under "sealed classes and members".
 
@@ -1114,9 +1131,14 @@ public abstract class YouCantNewThis
 
 However this is really just a coincidence of syntax; when an abstract property is overridden, it can be implemented automatically or manually.
 
-Abstract methods and properties can *only* occur inside abstract classes; if you try to use them in a concrete class, you will get an error.  Abstract methods and properties are implicitly virtual, so if you try to declare them as `abstract virtual` you will also get an error.
+Abstract methods and properties can *only* occur inside abstract classes; if you try to use them in a concrete class, you will get an error.  Abstract methods and properties are implicitly virtual, so if you try to declare them as `abstract virtual` you will also get an error.  However, the members of an abstract class don't *have* to be abstract themselves.
 
-When you derive a concrete class from an abstract class, you must provide an implementation for all abstract properties and methods in the base class.
+When you derive a concrete class from an abstract class, you must provide an implementation for all abstract properties and methods in the base class, and they must be declared `override`.  The same rules apply as when overriding virtual members of a concrete class: access levels, parameter types, return types and property accessors must all match.
+
+Inheriting an abstract class and overriding its virtual methods and properties is similar in principle to implementing an interface.  However, there are three key differences:
+- Members that are defined in order to implement an interface are not declared as `override` and are not implicitly `virtual`.
+- Members that are defined in order to implement an interface must the same access level as their containing type, whereas members that are defined in order to implement an abstract class must have the same access level as the abstract member.
+- A property of an interface with only a `get` accessor may be implemented by a property with `get` and `set` or `get` and `init` accessors, whereas an abstract property can only be implemented by a property with matching accessors.
 
 #### Static members and classes
 
@@ -1140,25 +1162,40 @@ public class Egg
 }
 ```
 
-Static initialiser code is gathered up into a special method created by the compiler, called the class constructor, class initialiser or type constructor, which is guaranteed to be run before any constructor of that class is called.  However the exact point at which a class constructor is called is not defined beyond this, and historically has varied according to implementation.  You can't call the class initialiser yourself, but you can access its code and metadata via reflection like any other method.
+Static initialiser code is gathered up into a special method created by the compiler, called the class constructor, class initialiser or type constructor, which is guaranteed to be run before any instance constructor of that class is called.  The exact point at which a class constructor is called is not defined beyond this, and historically has varied according to implementation, so don't rely on it.  Don't, for example, rely on the precise behaviour of code like this:
+
+```
+public class Processor
+{
+    // This could be anywhere between the program start time and the time the first instance of this
+    // class was created, depending on runtime implementation.
+    public static readonly DateTime ApproxProgramStartTime = DateTime.Now;
+}
+```
+
+You can't call the class initialiser yourself, but you can access its code and metadata via reflection like any other method.  You can't define your own class initialiser.
 
 Methods (other than constructors) can be declared as static.  Inside a static method you can't use the `this` reference, or access any non-static members with an implied `this` reference.  Static methods can't be declared as `virtual` or `abstract`, so also can't be overridden; however, a static method can hide an inherited instance method or vice-versa.
 
-A class can be declared as a static class if all of its members are static.  By implication, a static class can't have any defined constructors.  Static classes are implicitly `sealed`, so can't be inherited.  Even though a static class cannot contain `abstract` members, static classes are themselves implicitly `abstract`, as in CIL this is the flag used to mark a class as non-instantiable.
+A class can be declared as a static class if all of its members are static.  By implication, a static class can't have any constructors.  Static classes are implicitly `sealed`, so can't be inherited.  Even though a static class cannot contain `abstract` members, static classes are themselves implicitly `abstract`, as in CIL this is the flag used to mark a class as non-instantiable.
 
 #### Extension methods
 
-When developing, you may find that you wish you could extend the API of a class or interface when you cannot.  Maybe it is something you don't control, maybe it is something that is `sealed`, maybe both.  You can partially get around this by writing *extension methods*.  These are static methods that can be called as if they were instance methods of any arbitrary class or struct, even one that you do not control.
+When developing, you may find that you wish you could extend the API of a type when you cannot.  Maybe it's something you don't control, maybe it's something that is `sealed`, maybe it's a type that can't have its own member methods.  You can partially get around this by writing *extension methods*.  These are static methods that can be called as if they were instance methods of any arbitrary type, even one that you do not control.
 
-An extension method is a static method, in a static class, with at least one parameter, where the first parameter is declared with the `this` modifier.  It can be called as a normal static method; or, it can be called as if it were an instance method of any instance or value of the first parameter's type (including `null` for reference types).  The `this` parameter can be of any type, including things such as `enum` types that cannot normally have methods.
+An extension method is a static method, in a static class, with at least one parameter, where the first parameter is declared with the `this` modifier.  It can be called as a normal static method; or, it can be called as if it were an instance method of any instance or value of the first parameter's type (including if the value is `null` for types that allow that).  The `this` parameter can be of any type, including things such as `enum` types that cannot normally have methods.
 
-Imagine, for example, that you wish the `string` type had a `ToAlternateCase()` method that changed characters alternately to upper then lower case.  Now, `string` is sealed, so you can't subclass it.  Creating an extension method, though, is straightforward.  One possible implementation would be as follows:
+Imagine, for example, that you wish the `string` type had a `ToAlternateCase()` method that changed characters alternately to upper then lower case.  The `string` type is sealed, so you can't subclass it, and in any case you'd then have to replace `string` with your custom subclass in anything that used strings where you might want to use your new method.  Creating an extension method, by comparison, is straightforward.  One possible implementation would be as follows:
 
 ```
 public static class StringExtensions
 {
     public static string ToAlternateCase(this string str)
     {
+        if (str is null)
+        {
+            throw new ArgumentNullException(nameof(str));
+        }
         char[] letters = new char[str.Length];
         for (int i = 0; i < str.Length; ++i)
         {
@@ -1180,21 +1217,21 @@ Giving classes containing extension methods names ending in `Extension` is a com
 
 Note that when used our new method appears to have no parameters.  Instead, the reference it appears to be called on is passed in as the first parameter to the method.  If the extension method has more than one parameter, then all but the first are passed normally, with the first positional parameter in the call being the second positional parameter in the method signature and so on.
 
-There is one major difference in behaviour between instance methods and extension methods, with respect to the caller.  If you call an instance method on a null reference, the VES will immediately throw a `NullReferenceException`.  However, because extension methods are really just a form of syntactic sugar that get substituted by a normal static method call in the CIL bytecode, calling an extension method on a null reference will not automatically throw an exception; you will just get a call to the method with `null` passed as the first parameter.  In many cases&mdash;including our example above&mdash;this may well throw a `NullReferenceException` in any case, but it may not.  It can be worthwhile specifically checking for a null first parameter and throwing an exception manually at the start of an extension method, so that from the caller's point of view the behaviour will be straightforward and almost the same as an instance method, save for the exception being thrown from within the method rather than from its calling frame.  However, if all warnings are enabled, the compiler will give you a warning if you manually throw `NullReferenceException` at any point.  Throwing exceptions is discussed below.  In C# 9 and above you can avoid any issue by using a nullable context and declaring the `this` parameter non-nullable.
+There is one major difference in behaviour between instance methods and extension methods, with respect to the caller.  If you call an instance method on a null reference, the VES will immediately throw a `NullReferenceException`.  However, because extension methods are really just a form of syntactic sugar that get substituted by a normal static method call in the CIL bytecode, calling an extension method on a null reference will not automatically throw an exception; you will just get a call to the method with `null` passed as the first parameter.  In many cases this will throw a `NullReferenceException` in the code, but it may not.  It can be worthwhile specifically checking for a null first parameter and throwing an exception manually at the start of an extension method, so that from the caller's point of view the behaviour will be straightforward and almost the same as an instance method, save for the exception being thrown from within the method rather than from its calling frame.  However, if all warnings are enabled, the compiler will give you a warning if you manually throw `NullReferenceException` at any point.  Throwing exceptions is discussed below.  In C# 9 and above you can avoid any issue by using a nullable context and declaring the `this` parameter non-nullable.
 
 #### Const fields and readonly fields
 
 The `const` and `readonly` modifiers are both used to declare read-only fields.  However, there are significant differences between them.
 
-A `const` field is an implicitly-static compile time constant.  It has to be initialised with an expression that the compiler can compute at compile time.  This puts a number of limitations on `const` fields.  They effectively have to be either value types or strings.  The value types must be "unmanaged value types"&mdash;value types that contain no references&mdash;and their initialisers must either be literal values or expressions the compiler knows how to fold into a literal value.
+A `const` field is an implicitly-static compile time constant.  It has to be initialised with an expression that the compiler can compute at compile time.  This puts a number of limitations on `const` fields: they effectively have to be either value types or strings.  The value types must be "unmanaged value types"&mdash;value types that contain no references aside from references to strings&mdash;and their initialisers must either be literal values or expressions the compiler knows how to fold into a literal value.
 
 Like method default values for parameters, const values are baked in to the CIL bytecode at the point of use when that code is compiled.  This means that one aspect of their behaviour is similar: if you change the source code value of a `const` field, both the code defining it and all the code using it has to be recompiled to pick up the new value.  In general, it is considered rather bad form to change the value of a `public const` field once it has been published.
 
 You can use `readonly` fields a little more flexibly.  `readonly` can be used for both static and instance fields, and makes the field behave like a property with an `init` method.  Static fields must be initialised; instance fields must either be initialised or must be set in a constructor.  The value of a `readonly` field cannot be changed, once it has been set, but as it's set at runtime not compile time it can be any computable value or reference.
 
-There are situations in which accessing a `readonly` field leads to a slight performance penalty, due to small amounts of boilerplate code that the compiler has to add in some situations to ensure that the field is not modified.  However, equally, declaring a field as `readonly` can lead to slight optimisations being applicable in some circumstances.  In general, Visual Studio will hint you to mark a field as `readonly` whenever it can be.  A good example of a candidate situation for `readonly` use is when dependencies are injected as constructor parameters, as these then liekly should not change over the life of the object.
+There are situations in which accessing a `readonly` field leads to a slight performance penalty, due to small amounts of boilerplate code that the compiler has to add in some situations to ensure that the field is not modified.  However, equally, declaring a field as `readonly` can lead to slight optimisations being applicable in some circumstances.  In general, Visual Studio will hint you to mark a field as `readonly` whenever it can be.  A good example of a candidate situation for `readonly` use is when dependencies are injected as constructor parameters, as these then probably should not change over the life of the object.
 
-Note that although the value of a `readonly` field is fixed, that does not mean that its members' values are also fixed.  This is particularly important to bear in mind in the case of `readonly` arrays: the `readonly` applies to the reference to the array, not to the individual values the array contains.  The same applies to any `readonly` reference type, although you don't have to worry if that type is something immutable such as a `string`.
+Note that although the value of a `readonly` field is fixed, it only grants you *shallow immutability*.  If it is a class or a struct, its members are not necessarily themselves immutable  This is particularly important to bear in mind in the case of `readonly` arrays: the `readonly` applies to the reference to the array, not to the individual values the array contains; it may be worth considering using an `ImmutableArray<T>` or similar class instead.  Shallow immutability applies to any `readonly` reference type or struct, unless that type is something immutable such as a `string`.
 
 ### Other aspects of syntax
 
@@ -1266,7 +1303,7 @@ while (expression)
 }
 ```
 
-If the expression is `true`, the body of the loop will be executed.  The expression will then be evaluated again, and if `true` the body executed again, ad infinitum&mdash;the most straightforward to create an infinite loop in C# is with `while (true) { ... }`.  As stated above, the `continue` statement will end the current iteration of the body and start the next evaluation of the loop expression, and the `break` statement will end the loop entirely and start executing the statement following the loop.
+If the controlling expression is `true`, the body of the loop will be executed.  The expression will then be evaluated again, and if `true` the body executed again, ad infinitum&mdash;the most straightforward to create an infinite loop in C# is arguably with `while (true) { ... }`.  As stated above, the `continue` statement will end the current iteration of the body and start the next evaluation of the loop expression, and the `break` statement will end the loop entirely and start executing the statement following the loop.
 
 Note that like all these kinds of loop, the loop body may be either a block or a single statement; but it is common for coding standards to mandate using blocks.
 
@@ -1305,9 +1342,46 @@ To expand a little on the rather opaque example above: `foreach` and `in` are ke
 
 The `IEnumerable<T>` interface is the base interface of all things iterable or enumerable.  The concepts behind this, and what you need to do to implement your own, are described below.  For now, all you need to know is that it is a type that can be used to access a set of items, all of the same type, sequentially.  When used in a foreach loop, the loop variable is set to the next item in the sequence, the loop body is executed; then the loop variable is set to the next item in the sequence and the loop body executed again, until there are no more items left in the sequence.
 
-Note that the `IEnumerable<T>` interface has no concept of the length of its contents, or of the position of the current item within the sequence.  Implementations of it are also not necessarily repeatable.  Because of this, if you consume additional elements from the iterator within the loop body, the loop body will not get executed for those elements.  If you are iterating over a sequence of knowable length and need to know the position of each item in the sequence within the loop body, it usually makes more sense to use a `for` loop or a LINQ method (see below for the latter).  Similarly, many implementations of `IEnumerable<T>` will mark any active iterators as invalid if the underlying data is changed in certain ways, which can easily lead to runtime errors (for example, if you are iterating over a `List<T>` and add or remove list elements within the loop body).  It is best to treat the iterator, and anything underlying it, as immutable for the duration of the loop.
+Note that the `IEnumerable<T>` interface has no concept of the length of its contents, or of the position of the current item within the sequence.  Implementations of it are also not necessarily repeatable.  If you are iterating over a sequence of knowable length and need to know the position of each item in the sequence within the loop body, it usually makes more sense to use a `for` loop or a LINQ method (see below for the latter).  Implementations of `IEnumerable<T>` will mark any active iterators as invalid if the underlying data is changed in certain ways, which can easily lead to runtime errors (for example, if you are iterating over a `List<T>` and add or remove list elements within the loop body).  It is best to treat the iterator, and anything underlying it, as immutable for the duration of the loop.
 
-In the life of C# there has been one major breaking change, behaviourally, with respect to `foreach` loops.  In earlier versions of C#, when a `foreach` loop was being executed, the loop variable was conceptually the same variable across all iterations of the loop, and it was set to a different value each time.  With C# 5 and later, on each iteration of the loop, the loop variable is a different variable with the same name.  This might seem like semantic nitpicking, and in the vast majority of cases it is, but it leads to a difference in behaviour when loop variables are accessed within lambda expressions as a reference to the loop variable can then legitimately "leak" outside the loop.  Lambdas are explained properly below; most code analysis tools will give you a warning when you have used a construct that might have behaved differently in older versions of the language.  The workaround&mdash;which will give the same behaviour on all language versions&mdash;is to assign the loop variable's value to a second variable within the loop body and refer to the value through that variable instead.  The change was made, incidentally, partly because of the large number of developers who found the original behaviour unintuitive.
+```
+// This code will compile, but fail at runtime, because List<T>.Clear() 
+// changes the list by removing all its elements, which breaks the active iterator.
+List<int> data = new List<int>() { 1, 3, 4, 5 };
+foreach (int i in data)
+{
+    if (i == 3)
+    {
+        data.Clear();
+    }
+}
+
+// This code will succeed, because Array.Clear() only
+// changes the value of each element to its default.
+int[] data = new [] { 1, 3, 4, 5 };
+foreach (int i in data)
+{
+    if (i == 3)
+    {
+        Array.Clear(data); // data is now 0, 0, 0, 0
+    }
+}
+```
+
+In the life of C# there has been one major breaking change, behaviourally, with respect to `foreach` loops.  In earlier versions of C# (up to and including version 4), when a `foreach` loop was being executed, the loop variable was conceptually the same variable across all iterations of the loop, set to a different value on each iteration.  With C# 5 and later, on each iteration of the loop, the loop variable is a different variable with the same name.  This might seem like semantic nitpicking, and in the vast majority of cases it is, but it leads to a difference in behaviour when loop variables are "captured" by using them within lambda expressions, as a reference to the loop variable can then legitimately "leak" out of the loop.  With older versions, that captured variable would then only ever have the value from the final loop iteration, whatever iteration it was captured on.  Lambdas are explained properly below; most code analysis tools will give you a warning when you have used a construct that might have behaved differently in older versions of the language.  The workaround&mdash;which will give the same behaviour on all language versions&mdash;is to assign the loop variable's value to a second variable within the loop body and refer to the value through that variable instead.  The change was made partly because of the large number of developers who found the original behaviour unintuitive.  Here's an example of some code that shows off this change in behaviour.
+
+```
+Action printAction = null;
+foreach (int i in new int[] { 1, 2, 3, 4, 5 })
+{
+    if (i == 1)
+    {
+        printAction = () => Console.WriteLine(i);
+    }
+}
+// This will print 1 in recent versions of .NET, 5 in older versions of .NET Framework.
+printAction();
+```
 
 #### Exception handling
 
@@ -1318,7 +1392,7 @@ Like a number of other languages, C# supports structured exception handling.  Th
 * If an exception is not trapped within a particular stack frame, it "bubbles up" to the calling frame
 * If an exception bubbles all the way up to the top, the program exits.
 
-Exceptions are classes; developers can create new exception types, but all exception types must inherit in some way from the `System.Exception` class.  In general, it is usual to instantiate a new exception object when throwing an exception, but it's not compulsary.  The `System.Exception` class contains various useful properties, such as `Message` to hold a human-readable error message, `InnerException` which I'll explain shortly, and `StackTrace` which holds a formatted string describing the site where the exception was thrown.
+Exceptions are classes; developers can create new exception types, but all exception types must inherit in some way from the `System.Exception` class.  In general, it is usual to instantiate a new exception object when throwing an exception, but it's not compulsary.  The `System.Exception` class contains various useful properties, such as `Message` to hold a human-readable error message, `InnerException` which I'll explain shortly, and `StackTrace` which holds a formatted string describing the site where the exception was thrown.  Code does not declare what types of exception it may potentially raise, and there is no way to do this other than documentation.
 
 Exceptions are thrown using the `throw` statement:
 
@@ -1326,7 +1400,7 @@ Exceptions are thrown using the `throw` statement:
 throw new Exception("An error message");
 ```
 
-The parameter sets the `Exception.Message` property; `Exception.StackTrace` is set automatically by the `throw` statement.
+The parameter sets the `Exception.Message` property; `Exception.StackTrace` is set automatically by the `throw` statement.  The `InnerException` property will be `null`.
 
 In general it is best practice to throw the most suitable type of exception for the situation in question, if one exists, and create your own specific exception types if none of the system exceptions fit your needs.  The system exceptions fit common use cases such as checking method parameters:
 
@@ -1370,9 +1444,9 @@ public Oven(Fuel fuel)
 }
 ```
 
-The null-coalescing operator will be explained more fully below.
+The null-coalescing operator `??` will be explained more fully below.
 
-Exceptions are trapped by putting your code within a `try` block, and adding `catch` blocks to determine which exceptions to handle.  The simplest case is a catch block which will handle any exception.
+Exceptions are trapped, to prevent them from causing the program to exit, by putting your code within a `try` block, and adding `catch` blocks to determine which exceptions to handle.  The simplest case is a catch block which will handle almost any exception, bar a few edge cases.
 
 ```
 try
@@ -1398,7 +1472,7 @@ catch (Exception e)
 }
 ```
 
-The above catches, which will catch any exception, are sometimes known as a "pokemon catch" from their ability to catch them all.  They are considered bad practice to some extent, but are useful in occasional circumstances: for example, if you want to ensure that a service will continue running regardless of any sort of error.
+The above catches, which will catch any exception (again, barring strange or extreme edge cases), are sometimes known as a "pokemon catch" from their ability to "catch them all".  They are considered bad practice to some extent, but are useful in occasional circumstances: for example, if you want to ensure that a service will continue running regardless of almost any sort of error.
 
 A catch block can throw a new exception, or can rethrow the existing exception.  The former case is the same as a `throw` anywhere else; the latter case is done with a `throw` statement with no exception given:
 
@@ -1414,7 +1488,7 @@ catch (Exception e)
 }
 ```
 
-Any code after the `throw;` would be unreachable.  Sometimes you will see code where this is written as `throw e;`&mdash;this works, but is generally considered a bad idea as it will re-set the `StackTrace` property of the exception, whereas the version above does not.  You could also throw a new exception of a different type; if you do, the correct thing to do is to set the `InnerException` property of the new exception to the original exception, like so:
+Any code after the `throw;` would be unreachable.  Sometimes you will see code where this is written as `throw e;`&mdash;this works, but is generally considered a bad idea as it will re-set the `StackTrace` property of the exception as if you were throwing a new instance, whereas the version above does not.  If you do throw a new exception instance, either of the same type or a different type, the correct thing to do is to set the `InnerException` property of the new exception to the original exception, like so:
 
 ```
 try
@@ -1428,7 +1502,9 @@ catch (Exception e)
 }
 ```
 
-Catch blocks can be more restrictive, and only catch exceptions which are of a certain type.  In C# 6 and onwards, they can also be filtered using a `when` clause, which takes any boolean expression.  If an exception could match multiple catch blocks, the first one to match is called.  Only one catch block is called; there is no fallthrough from one to the next.
+That way, the stack trace showing the exact location the exception was originally thrown is preserved for later analysis.
+
+Catch blocks can be more restrictive, and only catch exceptions which are of a certain class or derived classes.  In C# 6 and onwards, they can also be filtered using a `when` clause, which takes any boolean expression.  If an exception could match multiple catch blocks, the first one to match is called.  Only one catch block is called; there is no fallthrough from one to the next.
 
 ```
 try
@@ -1449,23 +1525,23 @@ catch (Exception e) when (e.Message.Contains("biscuits"))
 }
 ```
 
-You can also define a `finally` block.  This goes after the final `catch` block, and contains code that is almost always run.  If the `try` block executed successfully with no exceptions, the `finally` block is then execute before continuing.  If an exception is thrown and handled by a catch block, the `finally` block is run after the catch block executes; if the catch block throws or rethrows an exception, the `finally` block is run before the new exception is handled.  The `finally` block is intended for cleanup code that must normally always be run, for example to close open files or network connections.  You can, indeed, use `try { ... } finally { ... }` with no `catch` for this purpose.
+You can also define a `finally` block.  This goes after the final `catch` block, and contains code that is (almost) always run.  If the `try` block executed successfully with no exceptions, the `finally` block is then executed before continuing.  If an exception is thrown and handled by a catch block, the `finally` block is run after the catch block executes; if the catch block throws or rethrows an exception, the `finally` block is run before the new exception is handled.  The `finally` block is intended for cleanup code that must normally always be run, for example to close open files or network connections.  You can, indeed, use `try { ... } finally { ... }` with no `catch` for this purpose.
 
 I said the code in a `finally` block is *almost* always run.  If an exception bubbles up all the way to the top of the stack and the program exits as a result, it might not run; whether it runs or not depends on various system-specific conditions such as what CLR implementation is running the code and how the operating system is configured.  Normally this is not a problem given that your program is in its death-throes anyway; if you absolutely must guarantee that a `finally` block is run then insert a bare-bones `catch (Exception e) { throw; }` block either above the `finally` in question, or if that is not possible, in a calling frame.
 
-You may see code in which exception handling is used for "normal" flow-of-control&mdash;code in which exception handling is used not just to trap error states, but also to detect and trap expected situations and behave accordingly.  In some situations this can be very convenient to do; however, it is generally not recommended.  There is something of a performance penalty imposed when using try and catch, due to the amount of work which may be involved in unwinding the stack and generating the stack trace, so using them for normal flow-of-control should normally be avoided.
+You may see code in which exception handling is used for "normal" flow-of-control&mdash;code in which exception handling is used not just to trap error states, but also to detect and trap normal, expected situations and behave accordingly.  In some situations this can be very convenient to do; however, it is generally not recommended.  There is something of a performance penalty imposed when using try and catch, due to the amount of work which may be involved in unwinding the stack and generating the stack trace, so using them for normal flow-of-control should be avoided if possible.
 
 #### Expressions and operators
 
-Expressions are such a key part of the language that it feels slightly strange to be approaching them at this point in the course, after we have already covered more complex topics such as classes, inheritance, exception handling and suchlike.  After all, the vast majority of statements in C# are either expressions or contain them, to such an extent that you are liable to overlook their existance in a "cannot see the wood for the trees" situation.  In essence, anything that is not either a declaration of some kind, or one of the kinds of statement listed above, is probably an expression, and many of those statements themselves contain expressions, as we have seen.
+Expressions are such a key part of the language that it feels slightly strange to be approaching them at this point in the course, after we have already covered more complex topics such as classes, inheritance, exception handling and suchlike.  After all, the vast majority of statements in C# are either expressions or contain them, to such an extent that you are liable to overlook their existence, unable to see the wood for the trees.  In essence, anything that is not either a declaration of some kind, or one of the kinds of statement listed above, is probably an expression, and many of those statements themselves contain expressions, as we have seen.
 
-Expressions can contain operators; indeed, expressions are the only place you will see operators.  However, an expression does not have to contain any operators; for example, a variable name on its own can be an expression, such as when it is the parameter to a method call; or a literal value is also itself an expression.
+Expressions can contain operators; indeed, expressions are the only place you will see operators.  However, an expression does not have to contain any operators; for example, a variable name on its own can be an expression, such as when it is the parameter to a method call.  A literal value is also itself an expression, as is a method call.
 
-Every expression has a type, and when evaluated, a value.  The type of an expression is the type of the value it evaluates to, but not necessarily the specific type of the value.  This is self-evidently the case if an expression's type is one that cannot be instantiated, such as an interface or an abstract class.
+Every expression has a type, and when evaluated, a value.  The type of an expression is the type of the value it evaluates to, but not necessarily the specific type it will evaluate to.  This is self-evidently the case if an expression's type is one that cannot be instantiated, such as an interface or an abstract class.
 
-The language has a relatively rich set of operators, which can be categorised in a variety of ways.  There are unary, binary and ternery operators, taking one, two or three operands respectively; there are operators with side-effects and operators without side-effects.  Most C# operators are *left-associative*; that is, they group from left to right by default, but a few are right-associative.  The operator order of precedence can be overridden using parentheses in an intuitive way.  There are a number of situations where the same symbol is used for both a binary and a unary operator.
+The language has a relatively rich set of operators, which can be categorised in a variety of ways.  There are unary, binary and ternery operators, taking one, two or three operands respectively; there are operators with side-effects and operators without side-effects.  Most C# operators are *left-associative*; that is, they group from left to right by default, but a few are right-associative.  The operator order of precedence can be overridden using parentheses in an intuitive way.  There are a number of situations where the same symbol is used for both a binary and an unary operator.
 
-All operands are themselves expressions, and are evaluated from left to right irrespective of the associativity of the operator.  Some operators place restrictions on their operands; for example, the left-hand side of an assignment expression must be something that can have a value assigned to it, such as a variable or a settable property (similar to the concept of an *l-value* in C, although in C# the concept does not have a name).  The majority of binary operators always evaluate both operands; some binary operators and the "conditional operator" (the only ternery operator) conditionally evaluate some operands.
+All operands are themselves expressions, and are evaluated from left to right irrespective of the associativity of the operator.  Some operators place restrictions on their operands; for example, the left-hand side of an assignment expression must be something that can have a value assigned to it, such as a mutable variable or a settable property (similar to the concept of an *l-value* in C, although in C# the concept does not have a name).  The majority of binary operators always evaluate both operands; some binary operators and the "conditional operator" (the only ternery operator) conditionally evaluate some operands.
 
 When operators are used with numeric operands, a set of promotion rules is applied to the types before the operation, and this determines the type of the result.  Notably, the smallest-sized result of any numeric binary operator is `int`, so even, say, a bitwise operation between two bytes will always give an `int` value as the result.  In general automatic promotion always results in a type which can contain any possible value of either operand, with an exception thrown if this is not possible: for example, an operation between an `ulong` and and `int` without explicit casting will throw an exception, because there is no type which can store both the largest values of `ulong` and the negative values of `int`.  Similarly, you cannot mix `decimal` with either `double` or `float` operands without using explicit casting.
 
@@ -1497,23 +1573,21 @@ As you can see in the table, most binary operators are normally written with a s
 
 The member access and indexer access operators (`obj.Member` and `obj[i]`) have already been seen above.  The variants `obj?.Member` (occasionally called the "Elvis operator" due to its appearance) and `obj?[i]`, introduced in C# 6, are the null-conditional access operators.  If the left-hand operand is not null, they behave identically to the normal member access and indexer access operator.  If the left-hand operand does evaluate to null, the right-hand side of the operation is not evaluated and the value of the expression is null.  This enables you to write chains such as `a?.B?.C?.D` which will successfully return null if any of `a`, `a.B`, `a.B.C` or `a.B.C.D` are null.  With the normal member access operator, only the last of these situations would successfully return null; the others would throw a `System.NullReferenceException`.  The null-conditional operators were introduced in C# 6, and ever since have prompted much debate as to whether they are a convenient addition to the language, or promote lazy coding.
 
-The `nameof()` operator was briefly discussed above.  Its value is computed at compile-time: it is a string constant which is the name of the symbol passed to it.  The `typeof()` operator, although named similarly, is computed at runtime.  Its operand is a type name, and it returns a `System.Type` instance containing that type's metadata.  For example: `Type stringType = typeof(string);`.
+The `nameof()` operator was briefly discussed above.  Its value is computed at compile-time: it is a string constant which is the name of the symbol passed to it.  The `typeof()` operator, although named similarly, is computed at runtime.  Its operand is a type name identifier, and it returns a `System.Type` instance containing that type's metadata.  For example: `Type stringType = typeof(string);`.
 
-The operators `x++` and `x--` are the post-increment and post-decrement operators.  As in other languages, their value is the value of `x`, but they have the side-effect of increasing or decreasing `x`'s value by one.
+The operators `x++` and `x--` are the post-increment and post-decrement operators.  As in other languages, their value is the value of `x`, but they have the side-effect of increasing or decreasing `x`'s value by one.  By contrast the operators `++x` and `--x` are the pre-increment and pre-decrement operators.  They increase or decrease the value of `x` by one, and the value of the expression is the value of `x` after the increment or decrement.
 
 The `default` operator gives the default value of a type.  Historically it had to be used in the same way as `typeof()`, with the type name in parentheses such as `default(string)`, but since C# 7.1 it can be used on its own in contexts where the compiler can infer the type required.
 
 The unary `+x` operator essentially has no effect, as its value is the value of its operand.  `!x` is the logical NOT operator and `~x` is the bitwise NOT operator.
 
-The operators `++x` and `--x` are the pre-increment and pre-decrement operators.  They increase or decrease the value of `x` by one, and the value of the expression is the value of `x` after the increment or decrement.
-
-The operator `(T)x` is the casting operator, used to forcibly convert one type to another.
+The operator `(T)x` is the casting operator, used to forcibly convert one type to another.  If this is not possible, it will throw an exception at runtime.
 
 The `true` and `false` operators are rarely used, but can be implemented by a type to specify a conversion operation, to indicate that the operand is either definitely true or definitely false.  Note that they are not required to be defined as complements.
 
 The `>>` right-shift operator's behaviour is type-dependent.  On signed types, it performs an arithmetic shift and populates the high-order bit(s) with the value of the most significant bit.  On unsigned types, it populates the high-order bit(s) with zero.
 
-The `is` operator was originally intended for type-testing.  With expressions of the form `expr is type`, where `expr` is an expression and `type` is a type name, the operator's value is true if the expression's type is `type` or is derived from `type`&mdash; in other words, if the operand could be assigned to a variable of type `type` without error.  If not, its value is false.  Since C# 7 the `is` operator has slightly extended syntax, the most useful variant of which is a format that, if the operator is true, assigns the expression to a newly-declared variable of the type.  This syntax reads, for example, `expr is int x`: if `expr` can be assigned to the `int` type, it will be assigned to a newly-declared `int` variable `x`.  The C# and later version of `is` also allows you to use a constant as the right-hand operand; this is exactly equivalent to using the `Equals()` method, but allows you to write `expr is null` if you want to write that.  It also introduces the syntax `expr is var x`, which is almost equivalent to writing `var x = expr` but is an expression, rather than a declaration statement.
+The `is` operator was originally intended for type-testing.  With expressions of the form `expr is type`, where `expr` is an expression and `type` is a type name, the operator's value is true if the expression's type is `type` or is derived from `type`&mdash; in other words, if the operand could be assigned to a variable of type `type` without error.  If not, its value is false.  Since C# 7 the `is` operator has slightly extended syntax, the most useful variant of which is a format that, if the operator is true, assigns the expression to a newly-declared variable of the type.  This syntax reads, for example, `expr is int x`: if `expr` can be assigned to the `int` type, it will be assigned to a newly-declared `int` variable `x`.  The C# and later version of `is` also allows you to use a constant as the right-hand operand; this is exactly equivalent to using the `Equals()` method, but allows you to write `expr is null` if you want to write that&mdash;it is a useful way of avoiding infinite loops when defining overrides of the `==` operator.  It also introduces the syntax `expr is var x`, which is almost equivalent to writing `var x = expr` but is an expression, rather than a declaration statement.
 
 The `as` operator allows you to do safe type-casting.  If it is possible to convert an expression `expr` to type `T` then the expression `expr as T` is effectively the same as `(T)expr`.  However, if it is *not* possible, the former will be `null` without error whereas the latter will throw a `System.InvalidCastException`.  The `as` operator gets less use in new code due to the C# 7 extensions to the `is` operator; code that would have formerly been written:
 
@@ -1536,13 +1610,13 @@ if (expr is T castValue)
 
 The Boolean operators are `&`, `&&`, `|`, `||` and `^`.  The single-symbol versions are unconditional&mdash;they always evaluate both operands&mdash;and are either bitwise or logical depending on operand type: the former for numeric integer types, the latter for `bool`.  Note that as described above the smallest type that can result from a bitwise operation is always `int`, even if the operands are `byte`, so low-level bit-manipulation code which operates on individual bytes can potentially involve a lot of casting back to `byte` unless the values can be packed into `int`s first.  Note also that the logical `^` operator always gives the same result as `!=`, but has lower precedence.
 
-The two-symbol Boolean logical operators `&&` and `||` are conditional operators, also known as "short-circuiting" operators.  They always evaluate their left-hand operand, but only evaluate their right-hand operand if it will make a difference to the overall value of the expression.  In other words, `&&` only evaluates the right-hand operand if the left-hand operand is true, and `||` only evaluates the right-hand operand if the left-hand operand is false.  There is no such operator as `^^`, because it is impossible to carry out a XOR operation without knowing both operands.
+The two-symbol Boolean logical operators `&&` and `||` are conditional operators, also known as "short-circuiting" operators.  They always evaluate their left-hand operand, but only evaluate their right-hand operand if it will make a difference to the final value of the expression.  In other words, `&&` only evaluates the right-hand operand if the left-hand operand is true, and `||` only evaluates the right-hand operand if the left-hand operand is false.  There is no such operator as `^^`, because its behaviour would be no different to `^`.
 
-The `??` operator is the null-coalescing operator, introduced in C# 6, and is also conditional.  If the left-hand operand evaluates to a non-null value, that is the value of the expression and the right-hand operand is not evaluated.  If the left-hand operand is null, the right-hand operand is evaluated and becomes the value of the expression.  This is one of the few operators with right-associativity, so that `x ?? y ?? z` is equivalent to `x ?? (y ?? z)`.
+The `??` operator is the null-coalescing operator, introduced in C# 6, and is also conditional.  If the left-hand operand evaluates to a non-null value, that is the value of the expression and the right-hand operand is not evaluated.  If the left-hand operand is null, the right-hand operand is evaluated and becomes the value of the expression.  This is one of the few operators with right-associativity, so that `x ?? y ?? z` is equivalent to `x ?? (y ?? z)`, not `(x ?? y) ?? z`.
 
 The `? :` operator is the only ternery C# operator, and is also conditional and right-associative.  Given an expression of the form `test ? x : y`, the `test` expression is first evaluated.  If it is true, `x` is evaluated and becomes the value of the expression; if false, `y` is evaluated and becomes the value of the expression.
 
-Aside from the lambda-definition operator `=>` ("fat arrow"), which is described in a later section, all of the operators in the lowest-precedence rung of the table are assignment operators of one type or another.  Aside from the straightforward assignment operator `=`, each is an assignment form of a binary operator which also assigns the value of the expression to the left-hand operand.  For example, to take the best-known operator in this family, `x += y` is equivalent to `x = x + y` aside from the fact that `x` is only evaluated once.  There is a rich set of other assignment operators in the family, though; the `??=` operator, the newest, was introduced in C# 8.
+Aside from the lambda-definition operator `=>` ("fat arrow"), which is described in a later section, all of the operators in the lowest-precedence rung of the table are assignment operators of one type or another.  Aside from the straightforward assignment operator `=`, each is an assignment form of a binary operator which also assigns the value of the expression to the left-hand operand.  For example, to take the best-known operator in this family, `x += y` is equivalent to `x = x + y` aside from the fact that `x` is only evaluated once.  There is a rich set of other assignment operators in the family, though; the `??=` operator, the newest, was introduced in C# 8.  `x ??= y` sets `x` to `y` if `x` was previously `null`.
 
 Most operators can be overloaded to handle user-defined types where appropriate.  This is done by defining a static, public "operator method" within the operand type (or one of the operand types, if they differ).  The name of the method is the symbol of the operator, and the declaration includes the `operator` keyword after the return type.  For example, if you wanted to define the equality operator for an `Egg` class it might look something like this:
 
@@ -1582,9 +1656,9 @@ public static bool operator ==(Egg a, Egg b)
 
 If you do, though, you've immediately fallen into a tight infinite loop.  The `a == null` expression will be turned into a recursive call into your operator method, and after a few seconds your code will crash with a `StackOverflowException`.  Using `a is null` gets around this in C# 7 or later; the older way to avoid this trap is to use `ReferenceEquals(a, null)` instead.
 
-Some operators are restricted in that they cannot be defined alone.  The `==` operator is an example of this: if it is defined for a particular pair of operand types, then `!=` must also be defined for the same pair.  Similarly, you can't define `>` without also defining `<`.  You are allowed to define `>` without `>=`, but in most cases it probably makes sense to do so.  You should also consider when you need to implement operator commutativity yourself, where the operator is one that people would intuitively expect to be commutative; commutativity is never assumed by the compiler.  In other words, if you define `operator ==(TypeA a, TypeB b)` you should also implement `operator ==(TypeB b, TypeA a) { return a == b; }` to ensure that the `==` applied to that pair of types is guaranteed to be commutative with only one significant implementation to maintain.  Whether both operators should be implemented together, or one in `TypeA` and the other in `TypeB` is a matter for debate.
+Some operators are restricted in that they cannot be defined alone.  The `==` operator is an example of this: if it is defined for a particular pair of operand types, then `!=` must also be defined for the same pair.  Similarly, you can't define `>` without also defining `<`.  You are allowed to define `>` without `>=`, but in most cases it probably makes sense to do so.  You should also consider when you need to implement operator commutativity yourself, where the operator is one that people would intuitively expect to be commutative; commutativity is never assumed by the compiler.  In other words, if you define `operator ==(TypeA a, TypeB b)` you should also implement `operator ==(TypeB b, TypeA a) => a == b;` to ensure that the `==` applied to that pair of types is guaranteed to be commutative with only one significant implementation to maintain.  Whether both operators should be implemented together, or one in `TypeA` and the other in `TypeB` is a matter for debate.
 
-If you implement the equality operator for a particular class, you should also by convention implement the other way to test for equality, the `Equals()` method.  If your type `Egg` implements `operator ==(Egg a, Egg b)` it should also implement the `IEquatable<Egg>` interface (which contains the `Equals()`) method and override the `object.GetHashCode()` method.  This latter method should return an `int`.  It must return the same value for any two instances which the equality operator would describe as equal, and should usually return different values for any two instances which the equality operator would describe as unequal; this can include the same instance at different points in time.  If the `GetHashCode()` method does not behave as expected, some library features may perform poorly when used with the given types.
+If you implement the equality operator for a particular class, you should also by convention implement the other way to test for equality, the `Equals()` method (and vice versa).  If your type `Egg` implements `operator ==(Egg a, Egg b)` it should also implement the `IEquatable<Egg>` interface (which contains the `Equals()`) method and override the `object.Equals()` and `object.GetHashCode()` method.  This latter method should return an `int`.  It must return the same value for any two instances which the equality operator would describe as equal, and should usually return different values for any two instances which the equality operator would describe as unequal; this can include the same instance at different points in time.  If the `GetHashCode()` method does not behave as expected, some library features may perform poorly when used with the given types.
 
 #### Interfaces
 

@@ -2079,14 +2079,16 @@ In additional to the positional parameter constructor, record structs (both muta
 
 ### Anonymous types
 
-We have seen above that all C# code is contained within a type, and that all types are named and contained within a namespace.  This is not, however, the full story: it is also possible to define *anonymous types*.  These are well-defined types, and strongly-typed at compile time, but are not accessible by name and have various other limitations:
+We have seen above that&mdash;barring top-level statements&mdash;all C# code is contained within a type, and that all types are named and contained within a namespace.  This is not, however, the full story: it is also possible to define *anonymous types*.  These are well-defined types, and strongly-typed at compile time, but are not accessible by name in your code and have various other limitations:
 
-- They are reference types.
+- They are always classes.
 - The only members they can contain are properties.
 - The properties they contain are read-only and public.  Their types must be inferrable at compile-time, and they must not be unsafe types.
-- They cannot, therefore, contain methods, fields, or any other kind of member.
-- They cannot define constructors, therefore their only constructor is the implicit parameterless constructor.
+- They cannot contain methods, fields, or any other kind of member.
+- That includes constructors, therefore their only constructor is the implicit parameterless constructor.
 - They cannot define inheritance relationships, so are always implicitly derived from `object`.
+- Because they're not accessible by name, you can't derive other classes from them.
+- For the same reason, they can't be the delared return type or parameter type of a method.  If a method returns an anonymous type it must declare that it returns `object`. 
 - They are only defined at the point(s) in the code where they are instantiated.
 
 The definition and instantiation of an anonymous type is similar to a constructor call using brace initialiser syntax, but without the parentheses or type name.
@@ -2095,7 +2097,7 @@ The definition and instantiation of an anonymous type is similar to a constructo
 var anon = new { Size = 37, Description = "Stuff" };
 ```
 
-This example defines an anonymous type; it will be given a name by the compiler, and this name will be visible if you disassemble the compiler's CIL output, but it is not accessible in code.  The generated type name will probably not be valid as a type name within C# itself, to make sure you don't accidentally declare something which could cause a naming clash.  Visual Studio will give it an auto-generated name such as `'a`, in tool-tips and other on-screen help, but this will probably not be the name that your compiler gives it.  For one thing, the compiler has to ensure that code containing multiple anonymous types uses different names for each distinct anonymous types, whereas Visual Studio does not.
+This example defines an anonymous type; it will be given a name by the compiler, and this name will be visible if you disassemble the compiler's CIL output or call `instance.GetType().Name` at runtime, but it is not accessible in code.  The generated type name will probably not be valid as a type name within C# itself, to make sure you don't accidentally declare something which could cause a naming clash.  Visual Studio will give it an auto-generated name such as `'a`, in tool-tips and other on-screen help, but this will probably not be the name that your compiler gives it, which will be something more complex like `<>f__AnonymousType0```1`.  For one thing, the compiler has to ensure that code containing multiple anonymous types uses different names for each distinct anonymous type, whereas Visual Studio does not.
 
 Note the anonymously-typed object is assigned to a variable declared using the `var` keyword for implictly-typed declarations: `var` must be used, as there is no way to declare the variable's type explicitly.
 
@@ -2107,9 +2109,9 @@ var b = new { Description = "Stuff", Size = 12 };
 var c = new { Size = 8 };
 ```
 
-In a language using looser duck typing, you might expect to be able to assign between these variables. In C#, no assignments between the three variables are allowed, all six possible permutations of assignment causing compile-time errors.  In particular, even though code that uses variables `a` and `b` could almost certainly be identical, `a` cannot be assigned to `b` or vice-versa.
+In a language using looser duck typing, you might expect to be able to assign between these variables. In C#, no assignments between the three variables are allowed, all six possible permutations of assignment causing compile-time errors.  In particular, even though code that uses variables `a` and `b` could almost certainly be identical, `a` cannot be assigned to `b` or vice-versa, because two unrelated types will be created.
 
-If a property in an anonymous type has the same name as the member being used to initialise it, a slight shorthand can be used in the definition, omitting the `=` sign and everything to the right of it.  This is most useful when wanting to define an anonymous type whose properties are a subset of those of another object.  The following code:
+If a property in an anonymous type has the same name as the member being used to initialise it, a slight shorthand can be used in the definition, omitting the `=` sign and everything to the left of it.  This is most useful when wanting to define an anonymous type whose properties are a subset of those of another object.  The following code:
 
 ```
 var subsetOfX = new { Top = x.Top, Bottom = x.Bottom };
@@ -2125,15 +2127,15 @@ Anonymous types are commonly-used in LINQ sequences, which will be explained fur
 
 ### Disposables
 
-Although the VES must include a garbage collector responsible for handling memory cleanup of "managed objects" when they are no longer accessible from within running code, there may well be other memory cleanup requirements which it cannot handle by itself.  Code that interfaces with native or unmanaged libraries, or requires external or operating system resources may also have other cleanup requirements.  Code that accesses the filesystem, for example, should try to close open files cleanly; database drivers may require result objects to be closed in order to release server-side resources (this is particularly an issue with connections to Microsoft SQL Server or Azure SQL).  In most cases, this is accomplished most cleanly in C# by utilising the disposable pattern.  This is a standardised pattern which provides an interface that the VES garbage collector can hook into and use to ensure that external resources are always cleaned up before the garbage collector destroys an object, but also that the code can clean those resources up earlier if suitable without confusing the garbage collector later.
+Although the VES must include a garbage collector responsible for handling memory cleanup of "managed objects" when they are no longer accessible from within running code, there may well be other memory cleanup requirements which it cannot handle by itself.  Code that interfaces with native or unmanaged libraries, or requires external or operating system resources may also have other cleanup requirements.  Code that accesses the filesystem, for example, should try to close open files cleanly; database drivers may require result objects to be closed in order to release server-side resources (this is particularly an issue with connections to Microsoft SQL Server or Azure SQL).  In most cases, this is accomplished most cleanly in C# by utilising the disposable pattern.  This is a standardised pattern which provides an interface that the VES garbage collector can hook into and use to ensure that external resources are always cleaned up before the garbage collector destroys an object, but also that the code can clean those resources up earlier if suitable, without confusing the garbage collector later.
 
-It might be beneficial at this point to run through a high-level description as to how the VES garbage collector works, conceptually.  It classes all objects as belonging to one of three *generations*, numbered 0, 1 or 2.  As we've already discussed the only way to allocate memory to create a reference object in C# is via the `new` operator, and in the vast majority of cases when this happens, the object is marked as belonging to Generation 0.  The exceptions are "large objects", bigger than about 84kB in size, which are allocated from a separate "large object heap" and marked as Generation 2.
+It might be helpful at this point to run through a very brief and high-level description of how the VES garbage collector works, conceptually.  It classifies all objects as belonging to one of three *generations*, numbered 0, 1 or 2.  As we've said the only way to allocate memory to create a reference object in C# is ultimately via the `new` operator, and in the vast majority of cases when this happens, the object is marked as belonging to Generation 0.  The exceptions are "large objects", bigger than about 84kB in size, which are allocated from a separate "large object heap" and marked as Generation 2.
 
-The details around exactly when the garbage collector runs, exactly how it behaves, and whether other execution is suspended when it does run, vary from implementation to implementation and version to version, but at the highest level some things are common across all implementations of the VES and all configurations.  A garbage collection run also has a generation number; a GC run of generation X will collect garbage from generation X and all lower generations, so because of this generation 2 GC runs are also called "full garbage collection runs".  During the run, the garbage collector will destroy objects that are no longer accessible to running code.  Surviving objects in generations 0 and 1 will each then be promoted into the next-highest generation.  In other words, after a garbage collection run on generations 0 and 1, none of the objects in the generation before the GC run will still be in that generation afterwards; they will all either have been destroyed or promoted.  Long-lived objects quickly rise to generation 2, where they will stay until destroyed; but in a typical program most objects will be destroyed on the first GC run to encounter them.  Typically, the garbage collector will carry out frequent generation 0 runs, less frequent generation 1 runs, and generation 2 runs will be the least frequent of all.
+The details around exactly when the garbage collector runs, exactly how it behaves, and whether other execution is suspended when it does run, vary from implementation to implementation and version to version, but at the highest level some things are common across all implementations of the VES and all configurations.  A garbage collection run also has a generation number; a GC run of generation X will collect garbage from generation X and all lower generations, so because of this Generation 2 GC runs are also called "full garbage collection runs".  During the run, the garbage collector will destroy objects that are no longer accessible to running code.  Surviving objects in generations 0 and 1 will each then be promoted into the next generation up.  In other words, after a garbage collection run, Generation 0 will be empty; all Generation 0 objects will either have been destroyed or promoted; and after a Generation 1 or 2 GC run, none of the objects in Generation 1 beforehand will be in Generation 1 afterwards for the same reason.  Long-lived objects quickly rise to Generation 2, where they will stay until destroyed; but in a typical program most objects will be destroyed within the first few GC runs to encounter them.  Typically, the garbage collector will carry out frequent generation 0 runs, less frequent generation 1 runs, and generation 2 runs will be the least frequent of all.
 
-We have already discussed defining a finalizer method on a class.  When the garbage collector destroys an object, it checks to see if such a method exists, as if it does the garbage collector may need to ensure that the finalizer runs.  However, to avoid making garbage collections slower and to ensure that the garbase collector does not need to run user-defined code during a GC run, this is done by posting a reference to the object on the garbage collector's "finaliser queue".  The garbage collector generally runs through the finaliser queue in a separate thread, at a later time.  So that the object stays available until its finaliser is run, anything posted to the finaliser queue is counted as a "surviver" until its finaliser has been run, and will be promoted up to generation 2 just like an object that is still accessible by reference from the running code.  Its memory will finally be reclaimed on the first garbage collection run for its generation after the finalizer method has completed; this will probably be a full GC run.
+We have already mentioned defining a finalizer method on a class.  When the garbage collector destroys an object, it checks to see if such a method exists: if it does, the garbage collector may need to ensure that the finalizer runs.  However, to avoid making garbage collections slower and to ensure that the garbase collector does not need to run user-defined (and hence relatively unpredictable) code during a GC run, this is done by posting a reference to the object on the garbage collector's "finaliser queue".  The garbage collector generally runs through the finaliser queue in a separate thread, at a later time.  So that the object stays available until its finaliser is run, anything posted to the finaliser queue will be kept in memory until its finaliser has been run, and will be promoted up to Generation 2 if it wasn't there already.  Its memory will finally be reclaimed on the first full garbage collection run after the finalizer method has completed.
 
-You might think, from the above, that this makes everything straightforward.  If your code opens a database connection, or opens a file, just define a finalizer in the relevant class and make sure that the finalizer cleanly closes everything left open.  Indeed, this would work to some extent.  However, it's not the recommended pattern, in part because there is no guarantee how long it might take between the garbage collector determining that an object is no longer reachable, and the objects' finalizer being run.  If the object is holding a limited resource such as, say, an open database connection or an open file handle, this could be problematic.
+You might think, from the above, that this makes everything straightforward.  If your code opens a database connection, or opens a file, just define a finalizer in the relevant class and make sure that the finalizer cleanly closes everything left open.  Indeed, this would work to some extent.  However, it's not the recommended pattern, in part because there is no guarantee how long it might take between the garbage collector determining that an object is no longer reachable, and the object's finalizer being run.  If the object is holding a limited resource such as, say, an open database connection or an open file handle, this could be problematic: it could lock up resources that don't really need to be reserved.
 
 The solution to this is to use the dispose pattern.  At the cost of adding some boilerplate code to classes which need to implement it, it provides a pattern which makes it straightforward to clean up resources before the garbage collector identifies an object as unreachable, and signals to the garbage collector that these objects do not need to be held around to be finalized, whilst also functioning properly when called from code that does not follow the pattern.  Moreover, the language itself provides syntactical support to assist with using the pattern.
 
@@ -2141,17 +2143,17 @@ The disposable pattern essentially consists of three things:
 
 - The `System.IDisposable` interface.
 - The boilerplate which should be used to implement it.
-- The `using` keyword.
+- The `using` keyword, when used as a statement or to prefix a local variable declaration.  This isn't related to `using` directives, discussed earlier.
 
-The `System.IDisposable` interface itself is relatively straightforward: it contains a single method, which returns `void` and takes no parameters, named `Dispose()`.  However, choosing to implement this interface should be taken as a convention that has certain implications: that the class has resources which need to be cleaned up, that the `Dispose()` method will do this, and that the method will behave in certain conventional ways.  In particular, the `Dispose()` method must be written so that it can be called more than once, although the second and subsequent invocations should be no-ops.  In return, it is perfectly legitimate for other methods to stop functioning once `Dispose()` has been called, and there is a standard type, `System.ObjectDisposedException`, which those methods should throw if they are called after `Dispose()`.  The standard boilerplate for implementing `Dispose()` does properly handle multiple invocations, and also, once resources have been cleared up, registers the object with the garbage collector as one that does not need finalization even though it has a finalizer method.  
+The `System.IDisposable` interface itself is relatively straightforward: it contains a single method, which returns `void` and takes no parameters, named `Dispose()`.  However, choosing to implement this interface should be taken as a convention that has certain implications: that the class has resources which need to be cleaned up, that the `Dispose()` method will do this, and that the method will behave in certain conventional ways.  In particular, the `Dispose()` method must be written so that it can be called more than once, although the second and subsequent invocations should be no-ops.  In return, it is perfectly legitimate for other methods of the object to stop functioning once `Dispose()` has been called, and there is a standard type, `System.ObjectDisposedException`, which methods can throw if they are called after `Dispose()` has been called on their instance.  The standard boilerplate for implementing `Dispose()` does properly handle multiple invocations, adds a member field to indicate that an instance has been disposed, and also, once resources have been cleared up, registers the object with the garbage collector as one that does not need finalization even though it has a finalizer method.  
 
-In general, all classes which are responsible for managing fields or properties which are of `IDisposable` types should themselves implement `IDisposable`, so that they can dispose of the fields in question.  You should also implement `IDisposable` if your class holds references to any sort of external or operating system resource.  In general, you should find that the .NET API for accessing such resources will do so through `IDisposable` objects, so the two requirements dovetail quite naturally.
+In general, all classes which are responsible for managing fields or properties which are of `IDisposable` types should themselves implement `IDisposable`, so that they can dispose of the fields in question.  You should also implement `IDisposable` if your class holds references to any sort of external or operating system resource.  In general, you should find that the .NET API for accessing such resources will do so through `IDisposable` objects, so the two requirements dovetail quite naturally.  However, there might be cases in which your class holds a reference to a disposable type but doesn't want to dispose it: for example, an open file which might still need to be used.  Potentially, you might need to have some means to indicate whether the class should dispose of members or not when it is itself disposed.  For example, the `System.IO.Compression.ZipArchive` class (used to access the contents of ZIP files) always takes a `System.IO.Stream` constructor parameter which contains (or will contain) the underlying raw data of a ZIP archive, and has some constructors with a `bool` parameter to indicate if the underlying stream should be held open when the archive itself is disposed.  If, say, you are constructing a ZIP archive in memory you can pass a `MemoryStream` to a `ZipArchive` constructor, but must instruct it not to dispose the `MemoryStream` when disposing the `ZipArchive`&mdash;otherwise your in-memory ZIP file will be thrown away before you can do anything with it. 
 
 There are a few slightly different forms of the dispose pattern, depending on whether or not your class accesses unmanaged resources (or external code) directly or not, and whether or not your class is derived from another class which also follows the dispose pattern.  If your class is not derived from a class that implements the pattern, and it is `IDisposable` because it manages resources which are themselves managed `IDisposable` resources, then the outline of the pattern is as follows:
 
 - Create a `bool` field to track whether or not the object has been disposed.
-- Create a `protected` `virtual` method with the signature `void Dispose(bool d)` which carries out the disposal work.
-- Implement the `IDisposable` interface by creating a `void Dispose()` method which calls the protected override that actually does the work, and then registers the object with the garbage collector as one which does not require finalization.
+- Create a `protected virtual` method with the signature `void Dispose(bool disposing)` which carries out the disposal work.
+- Implement the `IDisposable` interface by creating a `public void Dispose()` method which calls the protected override that actually does the work, and then registers the object with the garbage collector as one which does not require finalization.
 
 The boilerplate code for the above looks something like this:
 
@@ -2186,7 +2188,9 @@ public class DisposableClass : IDisposable
 }
 ```
 
-If your class is `sealed` then the `Dispose(bool d)` method obviously cannot be `protected` or `virtual`, but it still helps to keep the two methods separate for clarity.
+Your `Dispose(bool disposing)` method should also, to be polite, set any large fields to `null` to give the garbage collector a chance to destroy them&mdash;although this won't be possible if they've been declared `readonly`.
+
+If your class is `sealed` then the `Dispose(bool d)` method has to be `private` rather that `protected virtual`, but it still helps to keep the two methods separate for clarity.
 
 If you have unmanaged resources that need to be cleaned up, the recommended pattern is to use one of the classes derived from the abstract `System.Runtime.InteropServices.SafeHandle` class to wrap the unmanaged resource.  On the Windows platform there are a number of classes in the `Microsoft.Win32.SafeHandles` namespace to wrap things like OS-level filehandles, registry handles, and suchlike; these provide a lightweight way to wrap the external resources in managed `IDisposable` objects that will take care of finalization for you.  However, if you don't want to do this, you can also do the following:
 
@@ -2200,7 +2204,7 @@ If you are writing a class which is derived from another disposable class, and w
 ```
 public class DerivedDisposableClass : DisposableClass
 {
-    private bool _disposed = false; // Note: separate from the _disposed field of the base class.
+    private bool _disposed = false; // Note: separate to the _disposed field of the base class.
 
     private StreamReader _reader; // Another arbitrary example IDisposable resource.
 
@@ -2222,7 +2226,7 @@ public class DerivedDisposableClass : DisposableClass
 }
 ```
 
-Note the tail call to the base method: this is vital to ensure that private members of the base class are disposed properly, which is also why the base and derived classes have separate `_disposed` fields.  If your derived class also has unmanaged resources which need cleaning up (and cannot be wrapped in a `SafeHandle` instance) then add the necessary code in the same way as for the base class: put the cleanup code before `_disposed = true;` and add a finalizer that calls `Dispose(false)`.
+Note the tail call to the base method: this is vital to ensure that private members of the base class are disposed properly, which is also why the base and derived classes have separate `_disposed` fields, and why the `Dispose(bool disposing)` method must override the base implementation instead of hiding it, so that it is called first even if it's been accessed through a reference to the base type.  If your derived class also has unmanaged resources which need cleaning up (and cannot be wrapped in a `SafeHandle` instance) then add the necessary code in the same way as for the base class: put the cleanup code before `_disposed = true;` and add a finalizer that calls `Dispose(false)`.
 
 How do you know when you need to implement this type of pattern?  In general, if the class you are inheriting from implements `IDisposable` and defines a `protected virtual void Dispose(bool d)` method, you should assume that it is using the dispose pattern as described here, and therefore you should override the `Dispose(bool d)` method as per this example.
 
@@ -2238,11 +2242,11 @@ using (IDbConnection conn = GetOpenDatabaseConnection())
 }
 // "conn" is out of scope and has been disposed
 
-// "Simple" style - C# 8 and newer.  This variable's scope will be the same as a normal declaration.
+// "Simple" style - C# 8 and newer.  This variable's scope will be the same as a normal declaration.  conn8 will be disposed when it goes out of scope.
 using IDbConnection conn8 = GetOpenDatabaseConnection();
 ```
 
-The "simple style" is equivalent to a block using statement whose block is the final block of code inside its enclosing method, which is a very common use case if your code is divided into suitably-sized methods.
+The "simple style" is equivalent to a block using statement in a method with no further statements after the end of the block, which is a very common use case if your code is divided into suitably-sized methods.
 
 The important thing here is that the `conn` variable is declared and instantiated at the start of the block&mdash;we have hidden the details of how to open our connection behind a method, for the purposes of this example.  The connection can then be used as long as the variable remains in scope.  When the declared variable falls out of scope, `conn.Dispose()` is *automatically* called for us, through boilerplate code inserted into our CIL by the compiler.  Essentially, the above code is functionally equivalent to:
 
@@ -2286,7 +2290,7 @@ using (StreamReader reader = new StreamReader(stream))
 }
 ```
 
-This is idiomatic .NET file-reading code, and incidentally shows what was a fairly common code formatting style when using nested `using` blocks, before the "simple using statement" was introduced: if the only code contained within one `using` statement is a nested `using` statement, some coding styles will use neither indentation nor braces for the contents of everything other than the innermost `using`, to avoid excessive indentation.  This formatting style is very easily confused with a simple using statement: the only difference is the lack of a `;` at the end of the first using statement, which means that this is a block using statement whose block consists solely of the following using statement.
+This is idiomatic .NET file-reading code, and incidentally shows what was a fairly common code formatting style when using nested `using` blocks, before the "simple using statement" was introduced: if the only code contained within one `using` statement is a nested `using` statement, some coding styles will use neither indentation nor braces for the contents of everything other than the innermost `using`, to avoid excessive indentation.  This formatting style is very easily confused with a simple using statement: the only differences are the parentheses and the lack of a `;` at the end of the first using statement, which means that this is a block using statement whose block consists solely of the following using statement.
 
 More importantly, note that according to the documentation for the `StreamReader` class, it releases all of its resources when `Dispose()` is called.  This will include the `FileStream` from the outer block, because this was injected into the `StreamReader` as a resource.  This means firstly that `stream.Dispose()` will be called twice, once from `reader.Dispose()` at the end of the inner block; then again at the end of the outer block.  This is fine; because as we said earlier a `Dispose()` method must always be coded to be able to handle multiple calls.  However, it does mean that we have to be careful not to accidentally write code like this:
 
@@ -2310,7 +2314,7 @@ Cases like this can lead you to think that `using` can be too brittle and restri
 
 ### Lambdas and delegates
 
-In other languages, you may have come across concepts such as function pointers, function references or and method references.  The equivalents in .NET are delegate types and lambda expressions.  The functionality of this area of the language is one which has changed significantly since C# 1.0, so in this area more than most there are a number of ways to do the same task; however, in general, the language has moved over time from relatively static and inflexible constructs to more flexible ones.
+In other languages, you may have come across concepts such as function pointers, function references, anonymous functions or method references.  The equivalents in .NET are delegate types and lambda expressions.  The functionality of this area of the language is one which has changed significantly since C# 1.0, so in this area more than most there are a number of ways to do the same task; however, in general, the language has moved over time from relatively static and inflexible constructs to more flexible ones.
 
 Since its introduction, the language has included the concept of *delegate types*.  A delegate defines a type which represents a reference to a method with a particular signature.  For instance, a delegate type to represent methods which carry out integer arithmetic operations might be declared as follows:
 
@@ -2318,7 +2322,7 @@ Since its introduction, the language has included the concept of *delegate types
 public delegate int ArithmeticOperation(int a, int b);
 ```
 
-Note that this looks rather like an abstract method declaration; but the `delegate` keyword indicates that it is actually declaring a type, whose name is `ArithmeticOperation`, and which is a delegate type.  A variable can be declared to be of this type, and any static or instance method, on any class or of any name, whose type signature matches that of the delegate, can be assigned to such a variable.  They can also be passed as parameters, and then can be called like a method.
+Note that this looks rather like an abstract method declaration; but the `delegate` keyword indicates that it is actually declaring a type, whose name is `ArithmeticOperation`, and which is a delegate type.  A variable can be declared to be of this type, and any static or instance method, on any class or of any name and of any access level, whose type signature matches that of the delegate, can be assigned to such a variable.  They can also be passed as parameters, and then can be called like a method.
 
 ```
 public class Example
@@ -2344,9 +2348,9 @@ public class Example
 }
 ```
 
-The examples above are a bit contrived, but hopefully they demonstrate the principles of the syntax.  Note that a delegate representing an instance method is a reference to the method of a *specific* instance, and calling it will call that instance's method; you do not need to bind the reference to an instance separately.
+The examples above are a bit contrived, but hopefully they demonstrate the principles of the syntax.  Note that a delegate representing an instance method is a reference to the method on a *specific* instance, and calling it will call that instance's method; you do not need to bind the reference to an instance separately.
 
-Delegate types themselves also have an `Invoke()` method.  Using `Invoke()` in combination with the null-conditional member access operator `?.` can make safe calls to delegates more succinct.  The `Apply()` method in the previous example could be rewritten in one line as:
+Delegate type references themselves also have an `Invoke()` method.  From C# 6 onwards, using `Invoke()` in combination with the null-conditional member access operator `?.` can make safe calls to delegates more succinct and thread-safe.  The `Apply()` method in the previous example could be rewritten in one line as:
 
 ```
 public int Apply(ArithmeticOperation op, int a, int b)
@@ -2355,13 +2359,13 @@ public int Apply(ArithmeticOperation op, int a, int b)
 }
 ```
 
-Delegates can be composed into *invocation lists* using the addition operators.  If, for example, you have two delegates of the same type named `a` and `b`, the expression `a + b` returns a delegate which is of the same type, but which is a *multicast delegate*; when invoked, `a` and `b` will be called in that order.  If they have a return type, the return value of `b` will be returned by the multicast delegate.  This can be very useful in situations where a method takes a delegate parameter as a callback, because it enables the calling code to transparently specify multiple callbacks, without the called code needing to know or care how many callbacks have been passed (as long as the parameter is not `null` of course).  The `+=` operator can also be used to append a delegate to another, as you might expect: `a += b` will append `b` to `a`'s invocation list.
+Delegates can be composed into *invocation lists* using the addition operators.  If, for example, you have two delegate variables of the same type named `a` and `b`, the expression `a + b` returns a delegate which is of the same type, but which is a *multicast delegate*; when invoked, `a` and `b` will each be called, in that order.  If they have a return type, the return value of the multicase delegate will be the return value of the final delegate in the invocation list&mdash;`b` in our example.  This can be very useful in situations where a method takes a delegate parameter as a callback, because it enables the calling code to transparently specify multiple callbacks, without the called code needing to know or care how many callbacks have been passed (as long as the parameter is not `null`).  The `+=` operator can also be used to append a delegate to another, as you might expect: `a += b` will append `b` to `a`'s invocation list.
 
-You can also, incidentally, remove a delegate from a multicast delegate invocation list.  Given that delegates are added to invocation lists using the addition operators, you will hopefully not be surprised to find that they are removed using the subtraction operators.  If a delegate named `multicast` is composed of delegates `a` and `b`, then `multicast -= a` will remove `a` from the `multicast` invocation list.
+You can also, incidentally, remove a delegate from a multicast delegate invocation list.  Given that delegates are added to invocation lists using the addition operators, you will hopefully not be too surprised to find that they are removed using the subtraction operators.  If a delegate named `multicast` is composed of delegates `a` and `b`, then `multicast -= a` will remove `a` from the `multicast` invocation list, making it equivalent to calling `b` alone.
 
-In C# 1.0 it was often necessary for developers to define their own delegate types to match whatever particular type signatures they needed.  With the introduction of generic types in C# 2.0, the framework also supplied generic delegate types which can be used to avoid the need to define your own.  The number of these types has increased over time; but from .NET Framework 4.0 and .NET Standard 1.0 onwards they have supported methods with up to sixteen parameters, which should cover the vast majority of cases.
+In C# 1.0 it was often necessary for developers to define their own delegate types to match whatever particular type signatures they needed.  With the introduction of generic types in C# 2.0, the framework also supplied generic delegate types which can avoid the need to define your own.  The number of these types has increased over time; but from .NET Framework 4.0 and .NET Standard 1.0 onwards they have supported methods with up to sixteen parameters, which should cover the vast majority of cases.
 
-These types are `Action<...>` for methods returning void and `Func<...>` for methods with other return types.  The framework defines `Action<T>`, `Action<T1, T2>`, and `Func<TResult>`, `Func<T1, TResult>`, `Func<T1, T2, TResult>` and so on up to sixteen different type parameters (or seventeen including the return type of `Func<T1, ..., T16, TResult>`).  Our example `ArithmeticOperation` delegate type is not needed: it would be covered by `Func<int, int, int>`.  The only benefit to still defining your own delegate type is clarity when reading the code, as your delegate type name can encapsulate the purpose of the type much better than something arbitrary like `Action<string, string>` or similar.
+These types are `Action<...>` for void methods and `Func<...>` for methods with non-void return types.  The framework defines `Action<T>`, `Action<T1, T2>`, and `Func<TResult>`, `Func<T1, TResult>`, `Func<T1, T2, TResult>` and so on up to sixteen different type parameters (seventeen including the return type of `Func<T1, ..., T16, TResult>`).  Our example `ArithmeticOperation` delegate type is not needed: it would be covered by `Func<int, int, int>`.  The only benefit to still defining your own delegate type is clarity when reading the code, as your delegate type name can encapsulate the purpose of the type much better than something arbitrary like `Action<string, string>` or similar.
 
 C# 2.0 also introduced anonymous methods with the use of the `delegate` operator, but this is now little-used and is not recommeded in new code.  The example here is provided so that you know what one looks like, should you encounter one.
 
@@ -2375,7 +2379,7 @@ C# 3.0 introduced *lambda expressions*, a more concise way to define anonymous m
 Func<int, int, int> multiply = (a, b) => a * b;
 ```
 
-Lambda expressions are defined using the `=>` (or "fat arrow") operator; the left-hand side is the parameter list and the right-hand side is the body of the method.  This particular lambda expression is an *expression lambda*, where the body consists of a single expression; lambda method bodies can also consist of a block of code, like an anonymous delegate method, and these are called *statement lambdas*.  Note that the parameters are contained in parentheses; if the lambda has exactly one parameter the parentheses are not required.  A lambda with no parameters is defined using an empty pair of parentheses: `() => ...`.
+Lambda expressions are defined using the `=>` (or "fat arrow") operator; the left-hand side is the parameter list and the right-hand side is the body of the method.  This example is an *expression lambda*, where the body consists of a single expression.  Lambda method bodies can also consist of a block of code, like an anonymous delegate method; these are called *statement lambdas*.  Note that the parameters are contained in parentheses: if the lambda has exactly one parameter the parentheses are sometimes not required (see below for situations where they are).  A lambda with no parameters is defined using an empty pair of parentheses: `() => ...`.
 
 ```
 Func<int, int> square = a => a * a;
@@ -2392,7 +2396,15 @@ var multiply = (int a, int b) => a * b;
 
 Lambdas can either have all parameters explicitly typed or all parameter types inferred; but a given lambda can't mix and match.
 
-Lambdas can access most variables in the scope in which they are defined, referred to as *outer variables*, and the access of an outer variable by a lambda is called *capturing*.  A declared-but-undefined variable, or an `in`, `ref` or `out` parameter variable, cannot be captured by a lambda.  When a lambda captures a variable, its value is stored so that it can still be used by the lambda after it falls out of scope; however, it does not prevent normal operation of `using` blocks.  Consider the following example, adapted from the examples above on the `using` statement:
+From C# 10 onwards, a lambda can have its return type explicitly specified by putting the type before the parameter list.
+
+```
+var square = int (int x) => x * x;
+```
+
+If you specify either the return type or parameter type, a single-parameter lambda must put parentheses around the parameter.
+
+In general, lambdas can access most variables in the scope in which they are defined, referred to as *outer variables*, and the access of an outer variable by a lambda is called *capturing*.  A declared-but-undefined variable, or an `in`, `ref` or `out` parameter variable, cannot be captured by a lambda.  When a lambda captures a variable, its value is stored so that it can still be used by the lambda after it falls out of scope; however, it does not prevent normal operation of `using` blocks.  Consider the following example, adapted from the examples above on the `using` statement:
 
 ```
 Action dumpfile, printLength;
@@ -2438,20 +2450,26 @@ Files are now closed.
 
 The lambda is printing the value of `streamLength` at the time of execution, not at the time of capture.
 
-Lambda expressions, at their heart, usually compile down to the same CIL as delegates.  However they are rather more concise and flexible in their application, and as a result are seen in modern C# code much more often than the older syntax.  In particular they are often seen in LINQ code; probably the majority of LINQ methods have at least one overload which takes a `Func<T1, TResult>` parameter.  We will discuss LINQ in more depth below, once we have discussed its other key building block, the iterator.
+From C# 9 onwards a lambda can be declared as `static`.  This prevents it from capturing any instance members as outer variables, and gives the compiler the option&mdash;which it doesn't have to take&mdash;of compiling it as a static method.  A static lambda can capture static members (or `const` members, as they are implied static) of its containing type, just as a static method can use static members.
 
-Expression lambdas can also compile to another kind of object, the *expression tree*.  Expression trees can also be generated programmatically to create any kind of expression that C# can represent, and this can then be executed.  However, statement lambdas cannot be converted into expression trees.
+```
+Func<int, int> square = static (x) => x * x;
+```
+
+Lambda expressions, at their heart, often compile down to the same CIL as delegates.  However they are rather more concise and flexible in their application, and as a result are seen in modern C# code much more often than the older syntax.  In particular they are often seen in LINQ code; probably the majority of LINQ methods have at least one overload which takes a `Func<T1, TResult>` parameter.  We will discuss LINQ in more depth below, once we have discussed its other key building block, the iterator.
+
+Expression lambdas can also compile to another kind of object, the *expression tree*.  Expression trees can also be generated programmatically to create any kind of expression that C# can represent, and this can then be executed.  However, statement lambdas cannot be converted into expression trees.  When compiling, the compiler determines from context whether to compile an expression lambda into an anonymous method, or into code that generates an expression tree.  Expression trees can be examined at runtime: for example the Entity Framework library takes expression trees as parameters to many of its methods, and converts the .NET expression trees into SQL queries. 
 
 ### Iteration and iterators
 
-The concept of iteration has been a key feature of C# since its creation, due to the `foreach` statement.  It essentially revolves around two core interfaces:
+The concept of iteration has been a key feature of C# since its creation, due to the `foreach` statement described above.  It essentially revolves around two core interfaces:
 
 - `System.Collections.Generic.IEnumerable<T>`, which defines objects whose members can be enumerated.
 - `System.Collections.Generic.IEnumerator<T>`, which defines objects that carry out enumerations.
 
 The interfaces listed above are the generic forms introduced with generic types in C# 2.0; they both inherit from older non-generic versions, `System.Collections.IEnumerable` and `System.Collections.IEnumerator`.  However, the basic principles are the same; the primary difference is that the generic form enables iterator use to be type-safe.
 
-The `IEnumerable<T>` interface defines one key method: `IEnumerator<T> GetEnumerator()`, along with its non-generic form also.  The `IEnumerator<T>` interface defines two methods and one property: `bool MoveNext()`, `void Reset()` and `T Current`; the `Current` property also has a non-generic form declared as `object`.
+The `IEnumerable<T>` interface defines one key method: `IEnumerator<T> GetEnumerator()` (and also inherits the non-generic form from `IEnumerable`).  The `IEnumerator<T>` interface defines two methods and one property: `bool MoveNext()`, `void Reset()` and `T Current`; the `Current` property also has a non-generic form declared as `object`.
 
 `IEnumerable<T>` implementations can be very simple indeed: the current .NET Core implementation of `List<T>.GetEnumerator()` uses method expression syntax to reduce its implementation to two lines of code:
 
@@ -2464,7 +2482,7 @@ The magic is clearly all in the enumerator itself.  In the case of `List<T>` thi
 
 The basic principles of iteration are that the enumerator object has some concept of "the current item", and this is the value returned by the `Current` property.  `MoveNext()` changes the current item to be the "next" in the enumeration, whatever "next" might mean in this context, and `Reset()` resets the enumerator back to its default state, if this is possible.  It might not be.
 
-Note that these operations are very simple, and not guaranteed to be reversible.  The enumerable's members do not necessarily have to have a fixed index, and the enumeration might not necessarily be a reproducible operation.  Another basic limitation on the process is that enumeration is allowed to assume that the underlying members are fixed, at least for the duration of the enumeration.  Consider the following code:
+Note that these operations are very simple, and not guaranteed to be reversible.  As per the previous paragraph, `Reset()` might not work.  The enumerable's members do not necessarily have to have a fixed index, and the enumeration might not necessarily be a reproducible operation; if it is, it might not return items in the same order.  Another basic limitation on the process is that enumeration is allowed to assume that the underlying members are fixed, at least for the duration of the enumeration.  Consider the following code:
 
 ```
 void BreedSomeBacteria(List<Bacteria> colony)
@@ -2478,7 +2496,9 @@ void BreedSomeBacteria(List<Bacteria> colony)
 
 This will&mdash;other than for the trivial case of an empty list&mdash;throw an exception.  The call to `List<T>.Add()` will modify the list.  The foreach statement hides a call to `List<T>.Enumerator.MoveNext()` which will detect that the `List<T>` has been modified since the `List<T>.Enumerator` was created, and throw an `InvalidOperationException` as a result.
 
-When an enumerator is first created, its `Current` property should be considered to be in an invalid state, and accesses of the property should throw `InvalidOperationException`.  The first invocation of `MoveNext()` should&mdash;if the enumeration contains any items&mdash;move it on to the first valid item.  `MoveNext()` should return `true` if the call was successful in that an item was available to move to, and `Current` now represents that item; if `MoveNext()` returns `false` then the enumerator's `Current` property is once more in an invalid state.  In general, if you want to move through the whole enumeration, keep calling `MoveNext()` until it returns `false`, which means there was no next item to move to.  In keeping with the simplicity of the interface, there is no way to tell whether or not `MoveNext()` will succeed without calling it.
+When an enumerator is first created, its `Current` property should be in an invalid state, and accesses of the property should throw `InvalidOperationException`.  The first invocation of `MoveNext()` should&mdash;if the enumeration contains any items&mdash;move it on to the first valid item.  `MoveNext()` returns `true` if the call was successful&mdash;in that an item was available to move to&mdash;and `Current` is now that item; if `MoveNext()` returns `false` it means there are no more items, and the enumerator's `Current` property is once more in an invalid state.  In general, if you want to move through the whole enumeration, keep calling `MoveNext()` until it returns `false`, which means you've gone off the end of all of the items.  In keeping with the simplicity of the interface, there is no way to tell whether or not `MoveNext()` will succeed without calling it.
+
+Incidentally, if you're thinking "but hang on a minute there, we *do* know how long an array is, or how long a `List<T>` is"&mdash;yes, we do.  However they also implement more advanced interfaces such as `ICollection<T>` and `IList<T>` which give you a few more guarantees than a plain `IEnumerable<T>`, such as a known length and stable item position (items always having the same position in the data, in other words).  Here though we're working at the lowest level, and we don't have those guarantees.  That does mean we can, say, start iterating over a large data set without having loaded it all, or without having received it over the network.
 
 You can see from the above, now, how we could implement the `foreach` keyword if it did not exist.  The loop:
 
@@ -2519,7 +2539,7 @@ This is equivalent to a `foreach` loop in C# 5 or later.  We discussed earlier t
 
 Note that in this case the loop variable `x` is declared once, outside the loop, and is reassigned on each loop iteration.  Consider what happens if `x` is then captured by a lambda expression, and recall we said earlier that a lambda expression captures the variable, not its value.  With the "original" version of a `foreach`, if the lambda is executed after the loop has completed the value of a captured loop value will always be its value on the final iteration of the loop; with the "modern" version, the lambda expression created on each iteration of the loop will capture a different variable.
 
-As we said above, enumeration is not guaranteed to be reversible, resettable or repeatable: running the enumeration again is not guaranteed to reproduce the same results in the same order, although in many cases it will do.  In other words, once `IEnumerable<T>.GetEnumerator()` has been called, there is no guarantee that you will be able to call it a second time.  In many cases&mdash;for example, if the enumerable is actually a `List<T>` or an array&mdash;there is no problem at all, and enumerating a second time will return the same results (barring changes to the underlying data of course).  However, good development tools should give you a warning if you do enumerate over the same enumerable twice, in case this may not be possible.  If you do need to be able to enumerate over the same data twice, consider if you can change the declaration to a more specialised type such as `ICollection<T>`, `IDictionary<K, V>` or `IList<T>`.  The last of these also guarantees that items will be enumerated in the same order, as it requires every item to have a stable numerical index.
+As we said above, enumeration is not guaranteed to be reversible, resettable or repeatable: running the enumeration again is not guaranteed to reproduce the same results in the same order, although in many cases it will do.  In other words, once `IEnumerable<T>.GetEnumerator()` has been called, there is no guarantee that you will be able to call it a second time.  In many cases&mdash;for example, if the enumerable is actually a `List<T>` or an array&mdash;there is no problem at all, and enumerating a second time will return the same results (barring changes to the underlying data of course).  However, good development tools should give you a warning if you do enumerate over the same enumerable twice, in case this may not be possible.  If you do need to be able to enumerate over the same data twice, you can convert it to one of the more fully-featured types that allows multiple enumeration by calling the `ToArray()` or `ToList()` method.  Those methods are part of the LINQ API, which we'll discuss next.
 
 ### LINQ
 

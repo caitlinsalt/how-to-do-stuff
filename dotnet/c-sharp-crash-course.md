@@ -1558,7 +1558,7 @@ The full operator precedence table is below.  Operators in the same row take pre
 | Operators | Classification | Notes |
 | --- | --- | --- |
 | `obj.Member`, `obj?.Member`, `obj[i]`, `obj?[i]`, `Method()`, `x++`, `x--`, `new`, `typeof()`, `default`, `nameof()`, `delegate`, `sizeof()`, `stackalloc`, `p->Member`, `checked`, `unchecked` | Primary operators | `obj?.Member` and `obj?[i]` are conditional.  `p->Member` is discussed in the section below on unsafe code.  `delegate` is discussed in the section on lambdas and delegates. |
-| `+x`. `-x`, `!x`, `~x`, `++x`, `--x`, `(T)x`, `await`, `&x`, `*x`, `true`, `false` | Most unary operators, other than those in the row above | `await` is discussed in the section below on asynchronous code.  `*x` is discussed in the section on unsafe code. |
+| `+x`. `-x`, `!x`, `~x`, `++x`, `--x`, `(T)x`, `await`, `&x`, `*x`, `^x`, `true`, `false` | Most unary operators, other than those in the row above | `await` is discussed in the section below on asynchronous code.  `*x` is discussed in the section on unsafe code. |
 | `x..y` | The range operator | |
 | `switch`, `with` | | `with` is discussed in the section on record types. |
 | `x * y`, `x / y`, `x % y` | Multiplication, division and modulus | |
@@ -1582,6 +1582,12 @@ The member access and indexer access operators (`obj.Member` and `obj[i]`) have 
 The `nameof()` operator was briefly discussed above.  Its value is computed at compile-time: it is a string constant which is the name of the symbol passed to it.  The `typeof()` operator, although named similarly, is computed at runtime.  Its operand is a type name identifier, and it returns a `System.Type` instance containing that type's metadata.  For example: `Type stringType = typeof(string);`.
 
 The operators `x++` and `x--` are the post-increment and post-decrement operators.  As in other languages, their value is the value of `x`, but they have the side-effect of increasing or decreasing `x`'s value by one.  By contrast the operators `++x` and `--x` are the pre-increment and pre-decrement operators.  They increase or decrease the value of `x` by one, and the value of the expression is the value of `x` after the increment or decrement.
+
+The range operator `..` was introduced in C# 8.  Its operands must be of either `int` or `System.Index` type (or implicitly convertible to them), and its result is of type `System.Range`.  Its left operand is the inclusive lower bound of a range of indices, and the right operand is the exclusive upper bound.  Either operand may be omitted to give a range with no lower or no upper bound.
+
+The unary `^x` operator is the "index from end" operator, and was introduced alongside the `..` operator.  Its operand is an `int`, and its result is of type `System.Index`.  For a sequence of items of length `x`, `^x` means the index `length - x`.  In other words, the last item in a sequence can be indexed as `^1`.
+
+The unary `^` is often used with the `..` operator.  For example `..^1` means "all elements aside from the last", and `^3..` means "the last three elements.
 
 The `default` operator gives the default value of a type.  Historically it had to be used in the same way as `typeof()`, with the type name in parentheses such as `default(string)`, but since C# 7.1 it can be used on its own in contexts where the compiler can infer the type required.
 
@@ -1930,7 +1936,7 @@ public T this[int index]
 }
 ```
 
-As you can see above, the code for an indexer is essentially a property with one or more parameters; like a property, the `set` method also takes a `value` parameter.  Indexers can have multiple parameters (like a multi-dimensional array), and the parameter(s) can be of any type.  The most common parameter types are integers (for array-like data structures) or strings (for hash-table-like structures); other parameter types are equally legal but generally discouraged.
+As you can see above, the code for an indexer is essentially a property with one or more parameters; like a property, the `set` method also takes a `value` parameter.  Indexers can have multiple parameters (like a multi-dimensional array), and the parameter(s) can be of any type.  The most common parameter types are integers (for array-like data structures) or strings (for hash-table-like structures).  Traditionally other parameter types are equally legal but generally discouraged; since C# 8, if your type has an `int` indexer you will probably also want to provide `System.Index` and `System.Range` indexers so that calling code can use the `..` and unary `^` operators fully.
 
 Like properties, indexers can be defined in interfaces, and can be read-only, write-only and read-write.  Like properties, since C# 6 read-only indexers can be expression-bodied (defined using `=>`) and since C# 7.0 any indexer can be expression-bodied, using the same syntax as for properties.  Unlike properties, indexers cannot be `static`; because of this an indexer defined in an interface as `{ get; }` or `{ get; set; }` will need to be implmented in any implementing classes or structs like a property would have to be.
 

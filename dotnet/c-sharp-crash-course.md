@@ -207,35 +207,39 @@ Types can be nested, to some extent.  Any kind of type can be nested inside a cl
 
 Each built-in type which can be instantiated has a fully-qualified name (which is the same across all CLI languages) and a C# keyword which can be used as a synonym; the convention is to use the keyword in code where possible.  The built-in types and their keywords are:
 
-| Type           | Keyword | Constant suffix | Notes                            |
-| -------------- | ------- | --------------- | -------------------------------- |
-| System.Object  | object  |                 | Reference type.                  |
-| System.String  | string  |                 | Reference type.                  |
-| System.Boolean | bool    |                 |                                  |
-| System.Byte    | byte    |                 | Unsigned.                        |
-| System.SByte   | sbyte   |                 | Signed.  Not a CLS type.         |
-| System.Char    | char    |                 |                                  |
-| System.Int16   | short   |                 | Signed.                          |
-| System.UInt16  | ushort  |                 | Unsigned.  Not a CLS type.       |
-| System.Int32   | int     |                 | Signed.                          |
-| System.UInt32  | uint    | `U`             | Unsigned.  Not a CLS type.       |
-| System.Int64   | long    | `L`             | Signed.                          |
-| System.UInt64  | ulong   | `UL`            | Unsigned.  Not a CLS type.       |
-| System.Decimal | decimal | `M`             | Fixed-precision.                 |
-| System.Single  | float   | `F`             | Single-precision floating point. |
-| System.Double  | double  | `D`             | Double-precision floating point. |
+| Type           | Keyword | Constant suffix | Notes                                               |
+| -------------- | ------- | --------------- | --------------------------------------------------- |
+| System.Object  | object  |                 | Reference type.                                     |
+| System.String  | string  |                 | Reference type.                                     |
+| System.Boolean | bool    |                 |                                                     |
+| System.Byte    | byte    |                 | Unsigned.                                           |
+| System.SByte   | sbyte   |                 | Signed.  Not a CLS type.                            |
+| System.Char    | char    |                 |                                                     |
+| System.Int16   | short   |                 | Signed.                                             |
+| System.UInt16  | ushort  |                 | Unsigned.  Not a CLS type.                          |
+| System.Int32   | int     |                 | Signed.                                             |
+| System.UInt32  | uint    | `U`             | Unsigned.  Not a CLS type.                          |
+| System.Int64   | long    | `L`             | Signed.                                             |
+| System.UInt64  | ulong   | `UL`            | Unsigned.  Not a CLS type.                          |
+| System.Decimal | decimal | `M`             | Fixed-precision.                                    |
+| System.Single  | float   | `F`             | Single-precision floating point.                    |
+| System.Double  | double  | `D`             | Double-precision floating point.                    |
+| System.IntPtr  | nint    |                 | Native-precision signed integer.  Not a CLS type.   |
+| System.UIntPtr | nuint   |                 | Native-precision unsigned integer.  Not a CLS type. |
 
 Types in the above table are value types unless otherwise noted.
 
 Some numeric types have "constant suffixes" listed in the table above, which can be used to specify that a numeric constant, in code, is of that specific type.  Unsuffixed numeric constants with a decimal point default to `double`; without a decimal point, they default to the first integral type of `int` or larger (sorted in order of maximum value) which will accommodate the value.  Note that this means that a constant that is larger than the maximum `int` value, but smaller than twice the maximum `int` value, will be treated as `uint`.  The suffixes are case-insensitive.
 
-All of the built-in numeric types have `MinValue` and `MaxValue` constant fields.  The floating-point types also have `Epsilon` (the smallest value greater than zero that can be represented), `NaN`, `NegativeInfinity` and `PositiveInfinity` fields.
+The `nint` and `nuint` types were introduced in C# 9, as fast integer types whose exact size may differ between systems.  You are guaranteed to be able to assign constants within the ranges of `int` and `uint` to `nint` and `nuint` respectively.
+
+All of the built-in numeric types have `MinValue` and `MaxValue` members.  In most cases these are compile-time constant fields; for the `nint` and `nuint` types they are runtime properties.  The floating-point types also have `Epsilon` (the smallest value greater than zero that can be represented), `NaN`, `NegativeInfinity` and `PositiveInfinity` fields.
 
 The `string` type is immutable, and all "string manipulation" code actually returns a new string.  There is more information on string manipulation below.
 
 By convention the names of interface types always begin with a capital `I`; other types do not have any significant naming converntions that apply across every type of that kind.
 
-#### Inheritance and implementation
+#### Inheritance and interface implementation
 
 All user-defined types in C# inherit from exactly one other type, referred to as its "base type" or (for classes) "superclass", but this can not always be a type chosen by the developer.  A type that inherits from a given type can be referred to as a "derived type".  All user-defined value types inherit from the built-in type `ValueType`; this cannot be changed and is not specified in code.  Classes can inherit from any accessible class that is not declared as `sealed`; if the programmer does not explicitly specify a superclass, the class will inherit from the built-in `object` class.  Record classes can inherit from any accessible record class that is not declared as `sealed`, and like classes, inherit from the built-in `object` class if no base record class is specified.  Interfaces can inherit from other interfaces, but this is optional.
 
@@ -350,7 +354,7 @@ It is possible to split a class between multiple files using the `partial` keywo
 
 It can also be acceptable to include more than one class in a file if the two are tightly coupled.  For example, there is a standard interface `IComparer<T>` which can define a class to be used to compare the lexicographical ordering of two instances of another class.  If you had defined a `Thing` class, and wanted to also define a `ThingComparer` class that implemented `IComparer<Thing>`, you may consider it acceptable to put them in the same file because of their tightly-coupled nature.  Similarly, if you define an enum type purely to use it as the parameter type of a single method in a single class, you may want to define it as a non-nested type in the same file as the class, or you may want to define it as a nested type within the class.
 
-From C# 10 (.NET 6) onwards, it is possible to have one file in a project contain "top-level statements", statements which are defined outside any method, class or namespace.  If such a file exists, this file (or rather, the first top-level statement in it) is the entry point.  The .NET 6 template for a console app creates a top-level statement file instead of a `Program` class.
+From C# 10 (.NET 6) onwards, it is possible to have one file in a project start with "top-level statements", statements which are defined outside any method, class or namespace.  If such a file exists, its top-level statements must be before any type definitions in the file, and the start of this file is the entry point.  The .NET 6 template for a console app creates a top-level statement file instead of a `Program` class.  You will get a compilation error if a project contains both a top-level statement file and a `Program.Main()` method. 
 
 ### An outline of class terminology
 
@@ -405,7 +409,7 @@ A type member's access level cannot have wider access than the access level of t
 
 If a property has two accessor methods, they do not have to have the same access level.
 
-You cannot modify the access level of the values of enum types or the members of interfaces.  Officially they always default to `public`, but in practice they effectively default to the access level of the containing type (which has to be either `public` or `internal`).  When a class or struct implements an interface, the implementing members' access level must match the type's access level.
+You cannot modify the access level of the values of enum types.  Officially they always default to `public`, but in practice they effectively default to the access level of the containing type (which has to be either `public` or `internal`).  Before C# 8, you could not modify the access level of interface members, and when a class or struct implemented an interface the implementing members' access level had to match the type's access level.
 
 Access levels are checked at both compile time and run time, but do not guarantee secrecy.  Under default circumstances, if a piece of code has a reference to an object, it can examine any member of that object and call any method on it, whatever the access level, using reflection techniques.  This can be restricted using the Code Access Security feature of .NET Framework, but this is rarely used and is not available in .NET (or .NET Core).
 
@@ -1555,6 +1559,8 @@ The full operator precedence table is below.  Operators in the same row take pre
 | --- | --- | --- |
 | `obj.Member`, `obj?.Member`, `obj[i]`, `obj?[i]`, `Method()`, `x++`, `x--`, `new`, `typeof()`, `default`, `nameof()`, `delegate`, `sizeof()`, `stackalloc`, `p->Member`, `checked`, `unchecked` | Primary operators | `obj?.Member` and `obj?[i]` are conditional.  `p->Member` is discussed in the section below on unsafe code.  `delegate` is discussed in the section on lambdas and delegates. |
 | `+x`. `-x`, `!x`, `~x`, `++x`, `--x`, `(T)x`, `await`, `&x`, `*x`, `true`, `false` | Most unary operators, other than those in the row above | `await` is discussed in the section below on asynchronous code.  `*x` is discussed in the section on unsafe code. |
+| `x..y` | The range operator | |
+| `switch`, `with` | | `with` is discussed in the section on record types. |
 | `x * y`, `x / y`, `x % y` | Multiplication, division and modulus | |
 | `x + y`, `x - y` | Addition and subtraction | |
 | `x << y`, `x >> y` | Bit-shifting operators | |
@@ -1587,9 +1593,9 @@ The `true` and `false` operators are rarely used, but can be implemented by a ty
 
 The `>>` right-shift operator's behaviour is type-dependent.  On signed types, it performs an arithmetic shift and populates the high-order bit(s) with the value of the most significant bit.  On unsigned types, it populates the high-order bit(s) with zero.
 
-The `is` operator was originally intended for type-testing.  With expressions of the form `expr is type`, where `expr` is an expression and `type` is a type name, the operator's value is true if the expression's type is `type` or is derived from `type`&mdash; in other words, if the operand could be assigned to a variable of type `type` without error.  If not, its value is false.  Since C# 7 the `is` operator has slightly extended syntax, the most useful variant of which is a format that, if the operator is true, assigns the expression to a newly-declared variable of the type.  This syntax reads, for example, `expr is int x`: if `expr` can be assigned to the `int` type, it will be assigned to a newly-declared `int` variable `x`.  The C# and later version of `is` also allows you to use a constant as the right-hand operand; this is exactly equivalent to using the `Equals()` method, but allows you to write `expr is null` if you want to write that&mdash;it is a useful way of avoiding infinite loops when defining overrides of the `==` operator.  It also introduces the syntax `expr is var x`, which is almost equivalent to writing `var x = expr` but is an expression, rather than a declaration statement.
+The `is` operator was originally intended for type-testing.  With expressions of the form `expr is type`, where `expr` is an expression and `type` is a type name, the operator's value is true if the expression's type is `type` or is derived from `type`&mdash; in other words, if the operand could be assigned to a variable of type `type` without error.  If not, its value is false.  Since C# 7 the `is` operator has slightly extended syntax, the most useful variant of which is a format that, if the operator is true, assigns the expression to a newly-declared variable of the type.  This syntax reads, for example, `expr is int x`: if `expr` can be assigned to the `int` type, it will be assigned to a newly-declared `int` variable `x`.  The C# 8 and later version of `is` also allows you to use a constant as the right-hand operand; this is exactly equivalent to using the `Equals()` method, but allows you to write `expr is null` if you want to write that&mdash;it is a useful way of avoiding infinite loops when defining overrides of the `==` operator.  It also introduces the syntax `expr is var x`, which is almost equivalent to writing `var x = expr` but is an expression, rather than a declaration statement.  C# 9 extended this to include relational and boolean-logic patterns, so you can write `expr is >= 0 and < 256`.
 
-The `as` operator allows you to do safe type-casting.  If it is possible to convert an expression `expr` to type `T` then the expression `expr as T` is effectively the same as `(T)expr`.  However, if it is *not* possible, the former will be `null` without error whereas the latter will throw a `System.InvalidCastException`.  The `as` operator gets less use in new code due to the C# 7 extensions to the `is` operator; code that would have formerly been written:
+The `as` operator allows you to do safe type-casting.  If it is possible to convert an expression `expr` to type `T` then the expression `expr as T` is effectively the same as `(T)expr`.  However, if it is *not* possible, the former will be `null` without error whereas the latter will throw a `System.InvalidCastException`.  The `as` operator gets less use in new code due to the C# 7+ extensions to the `is` operator; code that would have formerly been written:
 
 ```
 var castValue = expr as T;
@@ -1662,15 +1668,15 @@ If you implement the equality operator for a particular class, you should also b
 
 #### Interfaces
 
-Interfaces have already been mentioned above, briefly, but without delving into their details.  As we outlined earlier, an interface is a reference type, but all its members are implicitly abstract and virtual.  In many ways it is like an abstract class, but in current versions of C# there are a number of points of difference.
+Interfaces have already been mentioned above, briefly, but without delving into their details.  As we outlined earlier, an interface is a reference type, but all its members are implicitly abstract and virtual.  In many ways it is like an abstract class, but with the primary difference that interfaces cannot contain anything which preserves per-instance state.
 
-* Abstract classes can contain a mixture of abstract and non-abstract members; interfaces cannot.
-* Interfaces cannot contain static members.
-* Interfaces cannot contain fields.
-* The members of an interface do not take access modifiers; they are all implicitly public.
+* Interfaces cannot contain instance fields.
+* Interfaces cannot contain auto-implemented properties, although they appear to.  Interface properties that appear to be auto-implemented properties are implicitly abstract.
 * As classes can only inherit from a single superclass, concrete implementations of an abstract class cannot inherit from any other classes.  However, classes can implement any number of interfaces.
 * Structs cannot inherit from other structs.  However, they can implement any number of interfaces.
 * Interfaces cannot be derived from classes, but can be derived from any number of interfaces.
+
+Before C# 8, interfaces could not contain concrete implementations, constants, operators, nested types, static members, and explicit access level modifiers.
 
 Some of the above will change from C# 8 onwards: in that version of the language, interfaces will be permitted to provide default implementations of members, making them more like abstract classes allowing multiple inheritance.
 
@@ -1736,6 +1742,8 @@ IZygote.Grow() called
 
 Note that the explicit implementation `IZygote.Grow()` has been called, but as an explicit implementation was not provided for `IEgg.Grow()`, the `Egg.Grow()` implementation was used instead.
 
+You must also use explicit interface implementation syntax when writing an interface which overrides a method defined in a base interface.
+
 #### Attributes
 
 Attributes are a way for the developer to attach custom metadata to code: to assemblies, classes, members, method parameters and method return types.  Some standard attributes affect how the compiler behaves; others are provided by the system or by frameworks to control runtime behaviour, and developers are also free to define their own custom attributes.  A few examples of the things attributes can be used for are:
@@ -1777,7 +1785,7 @@ The rules on the usage of positional and named parameters together is similar to
 [DllImport("user32.dll", SetLastError=false)]
 ```
 
-The values of attribute parameters have similar restrictions to the values of `const` field initialisers: they must be a compile-time constant, which effectively limits them to being either a literal, or the result of a compile-time operator expression such as `typeof` or `nameof`.  Some Microsoft documentation states they cannot be an expression; strictly speaking this is wrong, because literals are themselves expressions, but they must be hardcodable at compile time.  One example of a commonly-used attribute normally used with a compile-time operator is in unit testing, where `ExpectedExceptionAttribute` is used to assert that a test must throw a specific exception in order to pass.  A test to assert that the `List<T>` class throws an exception if you try to remove an element that does not exist might be written as follows:
+The values of attribute parameters have similar restrictions to the values of `const` field initialisers: they must be a compile-time constant, which effectively limits them to being either a literal, or the result of a compile-time operator expression such as `nameof`, or a `typeof` operator (normally a runtime operation but allowed to be compile-time for this specific case).  Some Microsoft documentation states they cannot be an expression; strictly speaking this is wrong, because literals are themselves expressions, but they must be hardcodable at compile time.  One example of a commonly-used attribute normally used with a compile-time operator is in the Visual Studio unit testing framework, where `ExpectedExceptionAttribute` is used to assert that a test must throw a specific exception in order to pass.  A test to assert that the `List<T>` class throws an exception if you try to remove an element that does not exist might be written as follows:
 
 ```
 [TestMethod]
@@ -1793,6 +1801,8 @@ public void ListOfIntClass_RemoveAtMethod_ThrowsExceptionWhenListIsEmptyAndParam
 Note the two attributes, firstly to mark this method as a test, and secondly to indicate the exception type that the test will throw.  Note also that this test has no explicit assertion code&mdash;assertion is handled in this case by the framework.  The class containing this method will need to be decorated with the `[TestClass]` attribute in order for the Visual Studio test runner to pick up the test.
 
 Custom attributes can be created by creating a class that derives from `System.Attribute` or any of its descendents.  The parameters to the attribute class's public constructor(s) are the attribute's positional parameters, and the class's public-settable properties (or public fields) are its named parameters.  You can limit the targets of an attribute class (for example, to say that an attribute can only be used to decorate a method, not a class) by decorating the attribute class with the `[AttributeUsage]` attribute (for example, `[AttributeUsage(AttributeTargets.Method)]`).
+
+If the target of an attribute is potentially ambiguous, it can be specified by preceding the attribute name with the kind of target and a colon.
 
 Attribute classes are not instantiated until the metadata of the relevant item is inspected through reflection.  Given an object reference `x`, the code `object[] attribs = x.GetType().GetTypeInfo().GetCustomAttributes(false);` will return an array of instances of the attributes that decorate the specific type of `x`, and changing the `false` parameter to `true` will return all attributes that decorate all of the types `x` is derived from.  Note that a second call to `GetCustomAttributes()`, even on the same `TypeInfo` object, will return new attribute instances.  For attributes on other kinds of declaration, in most cases there is a `GetCustomAttributes()` method which can be called on a `MemberInfo`-derived class appropriate to the kind of declaration; the most significant exception to this is attributes applied to the return type of a method, which are accessed through the `MethodInfo.ReturnTypeCustomAttributes` property.
 
@@ -1814,7 +1824,7 @@ var g = 1e6;           // double
 var h = 1_000_000;     // int, with the same value as g, written with underscores for clarity.
 ```
 
-If an integer literal is too large to fit into an `int`, its type will be the smallest type it fits into out of `uint`, `long` and `ulong`, with `long` preferred over `ulong`.
+If an integer literal is too large to fit into an `int`, its type will be the smallest type it fits into out of `uint`, `long` and `ulong`, with `long` preferred over `ulong`.  Integer literals that fit into an `int` can be assigned to a `nint`, and those that fit into a `uint` can be assigned to a `nuint`, but the type of the variable has to be explicitly declared.
 
 ```
 // These examples are all arbitrary numbers, not edge cases!
@@ -1825,7 +1835,7 @@ var m = 9_294_102_466_702;         // long
 var n = 9_372_372_278_864_032_911; // ulong
 ```
 
-As mentioned earlier, each type does have a `MaxValue` property to give you the definitive maximum limit should you need it in code.
+As mentioned earlier, each type does have a `MaxValue` member to give you the definitive maximum limit should you need it in code.  FOr most types (except `nint` and `nuint`) these are `const` fields, so can be used as compile-time constants; for `nint` and `nuint` they are properties computed at runtime as they may vary between systems.
 
 You can override the default type of a numeric literal, if legal, using a suffix.  The `L` suffix specifies `long` and `UL` specifies `UL`.  However, a number with an `L` suffix that is too large for a `long` will be promoted to `ulong` without error.
 
@@ -1845,7 +1855,7 @@ var b = 3.8f;    // float
 var c = 1e-2m;   // decimal
 ```
 
-The `d` suffix is only really relevant for integer literals.
+The `d` suffix is only really relevant for integer literals, because unsuffixed literals with a floating point default to `double`.
 
 Although there are no suffixes for the smaller integral types, assignment of integer literals to them will still work if the type is explicitly defined and the constant is within the correct range.  You can put an explicit cast in if you feel it adds clarity or if it is necessary.
 
@@ -1873,11 +1883,11 @@ String literals come in three flavours: regular, verbatim and interpolated.  Reg
 | `\U00HHHHHH` | UTF-32 escape sequence |
 | `\xhhhH` | Variable-length UTF-16 escape sequence |
 
-The `\u` and `\x` sequences differ only in that with the latter leading zeros may be omitted.  It can however cause confusion and ambiguity if the following character in the string is a valid hex digit; the `\u` and `\U` sequences avoid this.
+The `\u` and `\x` sequences differ only in that with the latter leading zeros may be omitted.  If the following character in the string is a valid hex digit which would inadvertently extend an `\x` sequence, the `\u` and `\U` sequences can be used instead.
 
 Line breaks are not permitted inside regular string literals.
 
-Verbatim string literals are prefixed with an `@` character.  In a verbatim string literal, there are no backslash escape sequences, and line breaks are permitted.  The only escape sequence within a verbatim string literal is `""`, which indicates one `"` character.  At one time verbatim string literals were much used to write Windows file paths, as they avoided doubling up all the directory-separator backslashes: it is much clearer to write `@"C:\Users\Caitlin\Desktop\Stuff\Repos\Guides\c-sharp-crash-course.md"` than to write `"C:\\Users\\Caitlin\\Desktop\\Stuff\\Repos\\Guides\\c-sharp-crash-course.md"`.  Nowadays, of course, in the platform-agnostic world you probably shouldn't be hardcoding paths into your code in that way, but there are still occasionally reasons to do it.  Verbatim string literals are converted into regular string literals at compile time, so if you decompile your code or inspect it in the debugger, all the escape sequences will be visible.
+Verbatim string literals are prefixed with an `@` character.  In a verbatim string literal, there are no backslash escape sequences, and line breaks are permitted.  The only escape sequence within a verbatim string literal is `""`, which indicates one `"` character.  At one time verbatim string literals were much used to write Windows file paths, as they avoided doubling up all the directory-separator backslashes: it is much clearer to write `@"C:\Users\Caitlin\Desktop\Stuff\Repos\Guides\c-sharp-crash-course.md"` than to write `"C:\\Users\\Caitlin\\Desktop\\Stuff\\Repos\\Guides\\c-sharp-crash-course.md"`.  Nowadays, of course, in the platform-agnostic world you probably shouldn't be hardcoding paths into your code in that way.  Verbatim string literals are converted into regular string literals at compile time, so if you decompile your code or inspect it in the debugger, all the escape sequences will be visible.
 
 Interpolated strings were introduced in C# 6, and work a bit like strings in Perl or similar languages: they enable you to embed expressions into your string literal that will be interpreted at runtime.  They are prefixed with the `$` character, and the embedded expressions within the string are surrounded with braces, like this:
 
@@ -1885,9 +1895,9 @@ Interpolated strings were introduced in C# 6, and work a bit like strings in Per
 $"There are {lines.Count} lines in the document."
 ```
 
-In this example, `lines.Count` is an expression that will be evaluated, converted to a string, and inserted into the literal at runtime.  Generally speaking, interpolated strings are converted at compile time into calls to the `string.Format()` method, which is discussed more fully below.  From C# 10 onwards, you can also use interpolated strings in `const` initialisers as long as all the expressions in the string are compile-time constants.
+In this example, `lines.Count` is an expression that will be evaluated, converted to a string, and inserted into the literal at runtime.  Generally speaking, interpolated strings are converted at compile time into calls to the `string.Format()` method, which is discussed more fully below.  From C# 10 onwards, you can also use interpolated strings in `const` initialisers as long as all the expressions in the string are constant strings; you can't use any expressions whose string conversion might vary at runtime, including numeric compile-time constants.
 
-The backslash escape sequences from regular string literals also work in interpolated strings.  C# 8 introduced verbatim interpolated strings, enabling constructs such as `$@"C:\Users\{user}\Desktop"`, which is a bad example you should never actually use because it makes a whole host of poor assumptions.
+The backslash escape sequences from regular string literals also work in interpolated strings.  C# 8 introduced verbatim interpolated strings, enabling constructs such as `$@"C:\Users\{user}\Desktop"`, which is a bad example you should never actually use in the real world.
 
 #### Indexers
 
@@ -1920,11 +1930,116 @@ public T this[int index]
 }
 ```
 
-As you can see above, the code for an indexer is essentially a property with one or more parameters; like a property, the `set` method also takes a `value` parameter.  Indexers can have multiple parameters (like a multi-dimensional array), and the parameter(s) can be of any type.  The most common parameter types are integers (for array-like data structures) or strings (for hash table-like structures) but other parameter types are equally legal.
+As you can see above, the code for an indexer is essentially a property with one or more parameters; like a property, the `set` method also takes a `value` parameter.  Indexers can have multiple parameters (like a multi-dimensional array), and the parameter(s) can be of any type.  The most common parameter types are integers (for array-like data structures) or strings (for hash-table-like structures); other parameter types are equally legal but generally discouraged.
 
-Like properties, indexers can be defined in interfaces, and can be read-only, write-only and read-write.  Like properties, since C# 6 read-only properties can be expression-bodied (defined using `=>`) and since C# 7.0 any indexer can be expression-bodied, using the same syntax as for properties.  Unlike properties, indexers cannot be `static`.
+Like properties, indexers can be defined in interfaces, and can be read-only, write-only and read-write.  Like properties, since C# 6 read-only indexers can be expression-bodied (defined using `=>`) and since C# 7.0 any indexer can be expression-bodied, using the same syntax as for properties.  Unlike properties, indexers cannot be `static`; because of this an indexer defined in an interface as `{ get; }` or `{ get; set; }` will need to be implmented in any implementing classes or structs like a property would have to be.
 
-Like methods, indexers can be overloaded with different parameter type signatures.  For example, the `System.Data.IDataReader` interface, which is used to define classes for carrying out forward-only reading of rows of tabular data, contains two indexers, one which takes an `int` parameter to access data fields by column index, and one which takes a `string` parameter to access data fields by column name.
+Like methods, indexers can be overloaded with different parameter type signatures.  For example, the `System.Data.IDataReader` interface, which is used to define classes for carrying out forward-only reading of rows of tabular data, contains two indexers, one which takes an `int` parameter to access data fields by column index, and one which takes a `string` parameter to access data fields by column name.  The same overloading rules apply as for methods: a type cannot define two indexers with the same parameter signature and different types.
+
+### Structs
+
+Structs have been discussed briefly above: they are in many ways like classes, but they are value-typed.  Under the hood, all of the built-in numeric types are structs, so in many ways their behaviour is fairly intuitive, if you think of it in terms of "how would a numeric variable behave here?"
+
+When a struct is passed in as a normal method parameter, as a value type it is copied, which could impose a large penalty for a large struct.  This is a shallow copy, so all values are copied as-is and any reference-type members will point to the same objects as before.
+
+All structs are implicitly `sealed` so cannot be inherited.  Because of this, access levels that are meaningless for members of `sealed` types, such as `protected` or `virtual`, are not permitted on struct members, and they and their members cannot be declared `abstract`.  The base type of all structs is `ValueType`, and a base type cannot be defined in code.
+
+Structs can implement interfaces, and can contain the same kinds of members as a sealed class.  All structs must have a parameterless constructor.  This can be the implicit parameterless constructor inserted for a type that has no defined constructors; but if a struct has any defined constructors, it must have a parameterless constructor and this constructor must set the values of all instance fields and properties.  For structs, the parameterless constructor is called by the `default` operator, whereas for classes the `default` operator returns `null`.
+
+Structs cannot be declared `static`, but they can have `static` members.
+
+Normal C# coding standards recommend that a struct of type `S` should implement `IEquatable<S>`, and should override `object.Equals()`, `object.GetHashCode()`, and the `==` and `!=` operators.  This is not compulsary, but it avoids boxing issues which would otherwise result in `object.Equals()` and `==` always returning `false` for the type, whatever the values being compared.
+
+### Records
+
+Record types were introduced in C# 9, with further changes in C# 10.  They are divided into record classes (reference types) and record structs (value types).  Code or documentation that refers to "records" alone may be referring to record classes, or may be referring to the things that record classes and record structs have in common.
+
+#### Record classes
+
+Record classes (sometimes just called records) were introduced in C# 9 and were intended as a way for developers to easily create immutable data record types.  Under the hood, if you decompile your CIL, you will see that record classes compile to classes with a lot of autogenerated boilerplate; but within the syntax of the language they are a distinct kind of type.  The simplest type of record definition uses *positional parameters* and consists of a single line of code:
+
+```
+public record Vehicle(string Registration, string Colour);
+```
+
+This will create a record class type called `Vehicle`, with the following:
+- A constructor whose signature matches the declaration.
+- Immutable (get-init) properties whose names and types match the parameters, and whose access levels match their containing record class.
+- A second constructor that takes a `Vehicle` parameter, which acts as a copy constructor.
+- An anonymous method which uses the copy constructor to clone an instance of the type.
+- A `Deconstruct` method with `out` parameters matching the constructor parameters: in our example this would have the signature `public void Deconstruct(out string Registration, out string Colour)`.  This method can be implicitly called using deconstruction syntax (see below).
+- A property named `EqualityContract` which returns the type of the instance.
+- An `Equals(Vehicle other)` method, so the type implements `IEquatable<Vehicle>`.
+- An override of `object.Equals(object other)`.
+- Overrides of the `==` and `!=` operators.
+- An override of `object.ToString()` which outputs the values of each property.  The output of this for our example `Vehicle` type would be `Vehicle { Registration = FAB 1, Colour = Pink }`.
+- A method named `PrintMembers()`, which is used by the `ToString()` method to format the properties of the record and their values.  This method will be either `protected` or `private` depending on the modifiers of its containing type.
+
+Positional record declarations are the only place in the normal C# coding standards, incidentally, where it is normal to define a parameter name that begins with a capital letter, so that the generated property names follow the normal standard.  From C# 10 onwards you can declare a record class with the keywords `record class`, which are a synonym for `record` alone.  Note that if you use a positional parameter record class declaration, the record class will not have a parameterless constructor created.
+
+The `Equals()` methods and operators implement equality by checking the values of each property.  This is a shallow check, unless the properties are custom types with deeper equality checking.
+
+If you need to add attributes to the properties of a record class declared with positional parameter syntax, you can put attributes on the parameters but add the `property` target to the attribute, as shown here:
+
+```
+public record Vehicle([property: JsonPropertyName("vrn")] string Registration, string Colour);
+```
+
+You can add your own members to a record class just like a regular class (with one limitation described further below).  You can add mutable get-set properties, or properties that have a different access level to the type itself.  If you want to use positional parameters to initialise a mutable property, you should declare both a positional parameter and a mutable property with the same name, and provide an initialiser for the property which uses the positional parameter, like this:
+
+```
+public record Vehicle(string Registration, string Colour)
+{
+    public string Registration { get; set; } = Registration;
+}
+```
+
+Record classes can inherit another record class as their base type, and if no inheritance is declared they inherit directly from `object`.  They can't inherit from a class.  Derived record classes that use positional parameters should redeclare all positional parameters that they want to expose in their constructor, and pass them to the constructor of the base type using a syntax similar to calling a base constructor:
+
+```
+public record Vehicle(string Registration, string Colour);
+public record Car(string Registration, string Colour) : Vehicle(Registration, Colour);
+```
+
+If you don't pass values for the base type's positional parameters like this, the properties of the base type will still be visible in the derived type, but will not be intialised.
+
+The generated equality-checking code in record classes will always determine record class instances of different types to be unequal, even if one is derived from the other.  In derived record class types, the equality-checking code compares all properties, whether declared in the derived type or inherited from the base type(s).
+
+The generated code in a record class includes an anonymous cloning method which can't be called explicitly.  Its purpose is to be called in a "`with` expression", which clones an instance of a record, optionally changing some of the positional properties.  The syntax of a `with` expression is similar to a brace initialiser.
+
+```
+// assume public record Vehicle(String Registration, string Colour);
+
+Vehicle myCar = new Vehicle("FAB 1", "Pink");
+Vehicle resprayedCar = myCar with { Colour = "Blue" };
+```
+
+Note that the type of a `with` expression is the same as the declared type of the left-hand operand, not its specific type.  Similarly, implicit calls to the `Deconstruct()` method of a record class call the method of the declared type, not of the specific type.
+
+If you define a record class that has an explicit implementation of any of the generated members described above, the compiler will use the explicit implementation and not generate its own.  As for classes, if you explicitly implement the equality-checking methods, you should also implement `GetHashCode()` with its normal behaviour (ie, instances that compare equal should return the same hash code).  In order for things to work properly, you must give your explicit implementations exactly the same signatures as the generated code would have.  This is particularly important for `PrintMembers()` as its signature depends on several aspects of the type.  In all cases `PrintMembers()` takes a single `StringBuilder` parameter and returns `bool`, but its modifiers vary:
+
+- If a record doesn't define a base type and isn't declared `sealed`, it must be declared `protected virtual`.
+- If a record doesn't define a base type but is `sealed`, it must be declared `private`.
+- If a record is derived from another record class, it must be declared `protected override`.
+
+If you do get the signature wrong, you will get a compile-time error.  Note that the compiler-provided implementation of `PrintMembers()` in a derived record class will call the `PrintMembers()` implementation of its base type, so bear this behaviour in mind when defining your own.
+
+Similarly, if you provide your own implementation for the copy constructor, it must be declared `private` for sealed record classes and `protected` for unsealed ones.
+
+You can't replace the generated instance cloning method, because it's anonymous.  However, you also can't declare a member named `Clone` inside a record class.
+
+If you implement your own `ToString()` override in a record class, you can declare it `sealed` to prevent the compiler creating its own implementation in any derived record classes.  You can't do that for your own implementations the other potentially-synthesised members, unless the record class itself is `sealed` (in whch case it's moot).  If you try to define, say, a `PrintMembers()` method as `sealed` in a non-sealed record class, you will get a compile-time error.
+
+#### Record structs
+
+Record structs were introduced in C# 10, and are the value-typed equivalent of a record class.  Aside from being a value type instead of a reference type, there are two key differences between records structs and record classes:
+
+- Like a struct, they can't be derived from a user-specified base type and they are all implicitly sealed.
+- Whereas record class positional parameters are immutable, record struct positional parameters are mutable by default.
+
+This second point means that the positional parameters of normal record structs are created as get-set properties, not as get-init properties as in a record class.  However, you can also define a `readonly record struct`, in which the positional parameters are made into immutable get-init properties.
+
+In additional to the positional parameter constructor, record structs (both mutable and `readonly`) have a parameterless constructor added by the compiler.  They *don't* have a copy constructor created, as for record structs the `with` operator uses normal assignment.  You can define a copy constructor yourself, but the `with` operator will not call it implicitly as it does for a record class.  Aside from that, record structs have the same generated members, with the same signatures, as a sealed record class.
 
 ## More advanced syntax and features
 

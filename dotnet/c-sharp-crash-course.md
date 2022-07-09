@@ -1296,6 +1296,32 @@ switch (expression)
 
 will not compile, because anything that could match the second case will clearly also match the first.  However if the two cases are swapped over, the code will compile.
 
+From C# 8 onwards, `switch` can also be used as an expression rather than as a flow-of-control statement.  It follows the same basic principles as a switch statement: an expression is evaluated and the action taken by the `switch` is the first from a list of patterns matched by the result of the expression.  However the syntax is rather different, and there two other important differences:
+- The action taken by a switch expression is the evaluation of a single expression, not the execution of a series of statements.
+- All of the possible expressions to be evaluated&mdash;the "expression arms"&mdash;must have the same type.
+- If none of the cases in a switch statement match the input expression, nothing happens.  If none of the patterns in a switch expression match the input expression, an exception is thrown.
+
+As for a switch statement, if the compiler can prove that one of the expression arms can never be reached, you will get a compile-time error.  An example switch expression, based loosely on the previous switch statement, looks like this:
+
+```
+string result = expression switch
+{
+    10 => "At the limit.",
+    int i when i > 10 => "Big value!",
+    int i when i >= 0 => i.ToString(),
+    _ => "Not allowed."
+};
+```
+
+Hopefully you can see a few of the differences in syntax between a switch statement and a switch expression:
+- The controlling expression is the left-hand operand of the `switch` operator, rather than being after the keyword.
+- The controlling expression does not have to be in parentheses.
+- The case keyword isn't used.
+- `=>` is used instead of `:` between the pattern and the expression arm.
+- Each expression arm ends with a comma, although this is optional for the final expression arm.
+- Instead of the `default` label, the "discard pattern" `_` is used to match any value.
+- Because this is an expression statement, it must end with a semicolon.
+
 The remaining flow of control statements are all different forms of loop: `while` (and `do ... while`), `for` and `foreach`.  All of them support putting two statements within the loop: `break` to leave it entirely, and `continue` to jump straight to the next iteration of the loop, using the term "iteration" loosely as the exact behaviour differs slightly according to the kind of statement.
 
 The `while` loop is probably the simplest:
@@ -1580,6 +1606,8 @@ As you can see in the table, most binary operators are normally written with a s
 The member access and indexer access operators (`obj.Member` and `obj[i]`) have already been seen above.  The variants `obj?.Member` (occasionally called the "Elvis operator" due to its appearance) and `obj?[i]`, introduced in C# 6, are the null-conditional access operators.  If the left-hand operand is not null, they behave identically to the normal member access and indexer access operator.  If the left-hand operand does evaluate to null, the right-hand side of the operation is not evaluated and the value of the expression is null.  This enables you to write chains such as `a?.B?.C?.D` which will successfully return null if any of `a`, `a.B`, `a.B.C` or `a.B.C.D` are null.  With the normal member access operator, only the last of these situations would successfully return null; the others would throw a `System.NullReferenceException`.  The null-conditional operators were introduced in C# 6, and ever since have prompted much debate as to whether they are a convenient addition to the language, or promote lazy coding.
 
 The `nameof()` operator was briefly discussed above.  Its value is computed at compile-time: it is a string constant which is the name of the symbol passed to it.  The `typeof()` operator, although named similarly, is computed at runtime.  Its operand is a type name identifier, and it returns a `System.Type` instance containing that type's metadata.  For example: `Type stringType = typeof(string);`.
+
+The `switch` operator and its syntax are covered above alongside switch statements, under "Flow of control".  Its left operand is an expression of any type, and its right operand is a list of patterns and expressions; the value of the switch expression is the value of the expression whose pattern best matches the value of the left operand.  The other "expression arms" are not evaluated.
 
 The operators `x++` and `x--` are the post-increment and post-decrement operators.  As in other languages, their value is the value of `x`, but they have the side-effect of increasing or decreasing `x`'s value by one.  By contrast the operators `++x` and `--x` are the pre-increment and pre-decrement operators.  They increase or decrease the value of `x` by one, and the value of the expression is the value of `x` after the increment or decrement.
 

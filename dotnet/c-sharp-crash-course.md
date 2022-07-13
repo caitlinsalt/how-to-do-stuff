@@ -111,6 +111,11 @@ One of the requirements of the CLS is that languages must provide an escaping sy
 
 Note that the set of valid CLS (and C#) identifiers is, even without considering `@`, a subset of all valid CLI identifiers.  This enables the compiler to generate and emit code which is not accessible by name from within user-written code, because its identifier is valid within the CLI but not within the language.  The compiler uses this, for example, to name anonymous methods and types, among other things.  You can only see these generated identifiers by decompiling the CIL code.
 
+C# doesn't have a preprocessor like C and C++ do&mdash;but despite this, it *does* have preprocessor directives!  Thehy are similar in nature to those in C and C++ and they also start with `#`.  Their primary uses are:
+- Conditional compilation (with `#if` and its associated friends).
+- Separating a code file into sections that a supporting editor can collapse or expand for display (with `#region` and `#endregion`).
+- Turning types of compiler warning on and off (with `#pragma warning`). 
+
 Since C# 7.0 the identifier `_` has had a special meaning as the "discard variable name" when it has not been declared as anything else.  Although this feature was introduced to the language in such a way that it did not break any existing code which used `_` as a normal identifier, it is advisable not to use it as a normal identifier in new code in order to avoid confusion.  Discard variables are described further below.
 
 #### Comments
@@ -2469,7 +2474,7 @@ The concept of iteration has been a key feature of C# since its creation, due to
 
 The interfaces listed above are the generic forms introduced with generic types in C# 2.0; they both inherit from older non-generic versions, `System.Collections.IEnumerable` and `System.Collections.IEnumerator`.  However, the basic principles are the same; the primary difference is that the generic form enables iterator use to be type-safe.
 
-The `IEnumerable<T>` interface defines one key method: `IEnumerator<T> GetEnumerator()` (and also inherits the non-generic form from `IEnumerable`).  The `IEnumerator<T>` interface defines two methods and one property: `bool MoveNext()`, `void Reset()` and `T Current`; the `Current` property also has a non-generic form declared as `object`.
+The `IEnumerable<T>` interface defines one key method: `IEnumerator<T> GetEnumerator()` (and also inherits the non-generic form from `IEnumerable`).  The `IEnumerator<T>` interface is disposable, and defines two methods and one property: `bool MoveNext()`, `void Reset()` and `T Current`; the `Current` property also has a non-generic form declared as `object`.
 
 `IEnumerable<T>` implementations can be very simple indeed: the current .NET Core implementation of `List<T>.GetEnumerator()` uses method expression syntax to reduce its implementation to two lines of code:
 
@@ -2543,13 +2548,13 @@ As we said above, enumeration is not guaranteed to be reversible, resettable or 
 
 ### LINQ
 
-LINQ, or Language-Integrated Query (nobody actually uses the full name) was introduced as a key component of .NET Framework 3.5 and C# version 3.0.  The original concept behind it was to provide a mechanism to embed set-oriented data-querying statements such as those provided in SQL within .NET languages.  With this in mind, C# 3.0 contained a whole new SQLalike syntax for defining queries as expressions.  However, this was syntactic sugar for a much more "normal" fluent API consisting of extension methods on the `IEnumerable<T>` interface, and as a result hardly anybody ever really uses the SQL-style syntax.  This document will concentrate on the fluent API, but I will describe the SQL-like syntax so that, at least, you can recognise it when you see it.
+LINQ, or Language-Integrated Query (nobody actually uses the full name) was introduced as a key component of .NET Framework 3.5 and C# version 3.0.  The original concept behind it was to provide a mechanism to embed set-oriented data-querying statements (such as those provided in SQL) within .NET languages.  With this in mind, C# 3.0 contained a whole new SQLalike syntax for defining queries as expressions.  However, this was syntactic sugar for a much more "normal" fluent API consisting of extension methods on the `IEnumerable<T>` interface, and as a result few developers really use the SQL-style syntax.  This document will concentrate on the fluent API, but I will describe the SQL-like syntax so that, at least, you can recognise it when you see it.
 
 #### LINQ basic principles
 
 Under the hood LINQ officially consists of a number of different "providers" such as "LINQ to Objects" for in-memory operations, "LINQ to XML" for processing XML document nodes, and other libraries which can act as LINQ providers such as the Entity Framework ORM.  However, all provide almost the same API, the LINQ to Objects library providing extension methods for `IEnumerable<T>` and the other providers providing extension methods for more specific types derived from `IEnumerable<T>`.  In one sense this makes development very easy because the code to carry out conceptually related operations always looks the same regardless of which provider is actually being called.  However it can lead to confusion when methods which have the same name across different providers have slightly different signatures or different restrictions on how they can be called depending on context.  I'll try to call out some of the major restrictions you might come across, but this can in some cases result in frustrating bugs that only occur at runtime, or occur in real-world situations but not when the data source has been mocked out.
 
-The most commonly-used LINQ method is probably `Select()`, which represents a projection operation.  Its full signature, for the LINQ to Objects version which operates on `IEnumerable<T>` is basically:
+The most commonly-used LINQ method is probably `Select()`, which represents a projection or map operation.  Its full signature, for the LINQ to Objects version which operates on `IEnumerable<T>` is basically:
 
 ```
 public static IEnumerable<R> Select<S,R>(this IEnumerable<S> source, Func<S,R> selector)
@@ -2564,7 +2569,7 @@ double[] values = new[] { 0.6, 7.2, 138.94, -8642.8 };
 var output = values.Select(x => x * 2);
 ```
 
-As I said, we don't need to specify that we are calling `Select<double, double>()` and equally we don't need to specify the type of the lambda parameter.  One thing to note, though, is that although our input type is `double[]`, the output type is not&mdash;it's `IEnumerable<double>`, so you are quite limited in the API available to you.  LINQ comes with helper methods `ToList<T>()` and `ToArray<T>()` which will construct sequences of either of those types from an `IEnumerable<T>` to make life easier.  The specific type returned by `Select()` will be an internal type of the LINQ provider, and it will likely be a type that encapsulates the arguments passed to it but defers actual execution of the lambda until it is enumerated over, to reduce the need to allocate intermediate storage for large sequences&mdash;we'll discuss the consequences of this later.
+As I said, we don't need to specify that we are calling `Select<double, double>()` and equally we don't need to specify the type of the lambda parameter.  One thing to note, though, is that although our input type is `double[]`, the output type is not&mdash;it's `IEnumerable<double>`, so you are a little more limited in the API available to you.  LINQ comes with helper methods `ToList<T>()` and `ToArray<T>()` which will construct sequences of either of those types from an `IEnumerable<T>` to make life easier&mdash;although on the other hand, developers often fall into the trap of wastefully calling these when they don't need to.  The specific type returned by `Select()` will be an internal type of the LINQ provider, and it will likely be a type that encapsulates the arguments passed to it but defers actual execution of the lambda until it is enumerated over, to reduce the need to allocate intermediate storage for large sequences&mdash;we'll discuss the consequences of this later.
 
 ```
 double[] values = new[] { 0.6, 7.2, 138.94, -8642.8 };
@@ -2575,8 +2580,10 @@ List<double> listOutput = values.Select(x => x * 2).ToList();
 Obviously there are many other things you could do here.  You could change the type of the members of a sequence, or format them as strings.
 
 ```
-IEnumerable<string> output = values.Select(x => x.ToString());
+IEnumerable<string> output = values.Select(static (x) => x.ToString());
 ```
+
+The `static` modifier on the lambda is only allowed in C# 9 and later.
 
 Because the second parameter to the method is a `Func<S, R>` you could have an arbitrarily complex anonymous method in there, but be careful that this can result in somewhat difficult-to-read code:
 
@@ -2602,11 +2609,11 @@ One common use of `Select()` is to only return the specific properties of an obj
 
 ```
 IEnumerable<Egg> rawEggs = LoadEggs(queryParams);
-var eggData = rawEggs.Select(e => new { e.Colour, e.Diameter });
+var eggData = rawEggs.Select(static (e) => new { e.Colour, e.Diameter });
 return SerialisationHelper(eggData);
 ```
 
-In this case, we have to use `var` to declare the output data type, as it will be a partially anonymous type; as we discussed above, Visual Studio will describe it as something like `IEnumerable<'a>` but the actual name of the anonymous type will be something unknowable and compiler-defined.
+In this case, we have to use `var` to declare the output data type, as it will be a partially anonymous type; as we discussed above, Visual Studio will describe it as something like `IEnumerable<'a>` but the actual name of the anonymous type will be something compiler-defined and not usable in code.
 
 There's a second `Select()` overload which has the following signature:
 
@@ -2617,10 +2624,8 @@ public static IEnumerable<R> Select<S,R>(this IEnumerable<S> source, Func<S,int,
 The difference is that the lambda method has a second parameter.  When the lambda of this variant is called, its position in the sequence will be passed as the second parameter.  If the specific type of the sequence is something like `List<T>` then this will be the same as the item's index; however, it is also passed for types that do not have a numerical index defined, in which case it will just be the position of the item in this iteration.  You can use it for any situation where it is useful information to have to hand:
 
 ```
-var formattedOutput = data.Select((x, i) => $"{i}: {x}");
+var formattedOutput = data.Select(static (x, i) => $"{i}: {x}");
 ```
-
-Note that we now need to use parentheses around the lambda parameter list, as it no longer has a single parameter.
 
 I said above that the object returned by `Select()` will almost certainly not be an array or a `List<T>`, but will actually be some sort of class that stores the data needed to execute the operation when requested&mdash;when the object is enumerated, in other words.  This can be demonstrated with code like the following:
 
@@ -2632,7 +2637,7 @@ class Program
         foreach (string str in data)
         {
             Console.WriteLine(str);
-            Thread.Sleep(1000); // don't actually do this in production code
+            Task.Delay(1000).Wait();
         }
     }
 
@@ -2678,11 +2683,11 @@ private static IQueryable<R> Select<S, R>(this IQueryable<S> source, Expression<
 
 Note that the second parameter in each case is an expression tree, not a delegate.  This means that code that uses an *expression lambda*, like most of our examples above, will be fine.  However a statement lambda cannot be converted to an expression tree, so the call will instead resolve to `IEnumerable<T>.Select()`.  This could potentially have a behavioural effect on the code: for example, it could mean that a data filtering step you intended to be done by the database server actually gets done within your process, greatly increasing the amount of data transferred over the network.  It will hopefully be clearer how things like that can happen when we have discussed more of the methods available in the LINQ API.
 
-The second difference between `IEnumerable<T>.Select()` and `IQueryable<T>.Select()` is that, even if your lambda is an expression lambda, the LINQ provider for your specific `IQueryable<T>` may not be able to translate the expression into operations supported by the underlying data source.  As an example, consider our earlier very simple example of `(x, i) => $"{i}: {x}"`.  This is an expression lambda with an interpolated string, which the compiler will compile as a method call expression which calls `string.Format()`.  A LINQ database provider which expects to be able to convert all its expression trees into SQL queries may well throw up its hands and say that a method call cannot be converted.  Even simple projection expressions such as `x => new { x.Width, x.Colour }` may not always work with all providers.  It is very easy, when using more advanced LINQ use-cases, to come up against spots like this where code that works on paper, or that works when unit tested with a mock `IQueryable<T>`, does not work when fully integrated with its intended data sources.  Moreover, these issues will often only be found at run-time.  One of the flaws of LINQ is how it obscures boundaries between providers, and thereby boundaries regarding functionality or locality of code.
+The second difference between `IEnumerable<T>.Select()` and `IQueryable<T>.Select()` is that, even if your lambda is an expression lambda, the LINQ provider for your specific `IQueryable<T>` may not be able to translate the expression into operations supported by the underlying data source.  As an example, consider our earlier very simple example of `(x, i) => $"{i}: {x}"`.  This is an expression lambda with an interpolated string, which the compiler will compile as a method call expression which calls `string.Format()`.  A LINQ database provider which expects to be able to convert all its expression trees into SQL queries may well throw up its hands and say that a method call cannot be converted.  Even simple projection expressions such as `x => new { x.Width, x.Colour }` may not always work with all providers.  It is very easy, when using more advanced LINQ use-cases, to come up against spots like this where code that works on paper, or that works when unit tested with a mock `IQueryable<T>`, does not work when fully integrated with its intended data sources.  Moreover, these issues will often only be found at run-time.  One of the flaws of LINQ is that it obscures boundaries between providers, and thereby boundaries regarding functionality or locality of code.
 
 #### More of the LINQ API
 
-The API that all LINQ providers should implement is called the Standard Query Operator API.  We've already discussed `Select()`, as probably the most frequently-used methods, but here are the others.  The method signatures I've given here are the `IEnumerable<T>` versions.
+The API that all LINQ providers should implement is called the Standard Query Operator API.  We've already discussed `Select()`, as probably the most frequently-used methods, but here are the others.  The method signatures I've given here are the `IEnumerable<T>` version that take `Func<>` delegates, not the versions that take expression trees, but they are essentially the same in outline.
 
 ```
 public static IEnumerable<S> Where<S>(this IEnumerable<S> source, Func<S, bool> predicate);
@@ -2698,7 +2703,7 @@ IEnumerable<ChocolateEgg> = eggs.OfType<ChocolateEgg>();
 
 The `Where()` method provides filtering.  It expects a predicate lambda that returns `bool`; the output sequence contains the elements for which the predicate returns `true`.  Like `Select()`, there is a form which takes the index of each element as a second parameter to the predicate.
 
-The `OfType()` method is similar to `Where(x => x is T)` but also implies a cast to the given type.  It is unusual, in that it always needs the type parameter to be specified, which does somewhat prevent you selecting the type in question dynamically.
+The `OfType()` method is similar to `Where(x => x is T)` but also implies a cast to the given type, so it's effectively equivalent to `Where(x => x is T).Select(x => (T)x)`.  It is unusual, in that it always needs the type parameter to be specified, which does prevent you selecting the type in question dynamically.
 
 ```
 public static T First<T>(this IEnumerable<T> source);
@@ -2717,11 +2722,11 @@ public static T Single<T>(this IEnumerable<T> source, Func<T, bool> predicate);
 public static T SingleOrDefault<T>(this IEnumerable<T> source, Func<T, bool> predicate);
 ```
 
-This family of twelve methods all extract a single element from a list according to various criteria.  The `...OrDefault()` forms all return `default(T)` if no suitable element is found to return; the forms without `...OrDefault()` throw an `InvalidOperationException` if there is no suitable element.  The overloads of `Single()` and `SingleOrDefault()` also throw an `InvalidOperationException` if multiple elements potentially meet the criteria.
+This family of twelve methods all extract a single element from a list according to various criteria.  The `...OrDefault()` forms all return `default(T)` if no suitable element is found to return; the forms without `...OrDefault()` throw an `InvalidOperationException` if there is no suitable element.  All overloads of `Single()` and `SingleOrDefault()` also throw an `InvalidOperationException` if multiple elements match the predicate criteria.
 
-The one-parameter versions of the methods are all basically self-explanatory.  `First()` returns the first element, assuming the sequence is not empty.  `Last()`, unsurprisingly, returns the last.  `Single()` also returns the first element, the difference with `First()` being that it throws an exception unless the sequence *only* contains a single element.  If you are dealing with a sequence whose elements have a guaranteed order, all of these methods can straightforwardly be replaced with equivalent indexer operations.
+The one-parameter versions of the methods are largely self-explanatory.  `First()` returns the first element, throwing an exception if the sequence is empty.  `Last()`, unsurprisingly, returns the last, again throwing an exception on an empty sequence.  `Single()` also returns the first element, the difference with `First()` being that it throws an exception unless the sequence *only* contains a single element.  `SingleOrDefault()` throws an exception if the sequence contains multiple elements, but not if it is empty.  If you are dealing with a sequence whose elements have a guaranteed order, `First()` and  `Last()` can straightforwardly be replaced with equivalent indexer operations: `[0]` and `[^1]`.
 
-The two-parameter versions of the methods all require a predicate to narrow down the selection criteria.  In other words, `First()` will return the first element for which the predicate is true, `Last()` the last for which the predicate is true, and `Single()` will apply the predicate to all elements, throw an exception if none or more than one match, and return the single matching element otherwise.
+The two-parameter versions of the methods all require a predicate to narrow down the selection criteria.  In other words, `First()` will return the first element for which the predicate is true (and throw an exception if there are none), `Last()` will return the last for which the predicate is true (or throw an exception), and `Single()` will apply the predicate to all elements, throw an exception if none or more than one match, and return the single matching element otherwise.
 
 ```
 public static T ElementAt<T>(this IEnumerable<T> source, int index);
@@ -2743,7 +2748,9 @@ public static IEnumerable<T> SkipWhile<T>(this IEnumerable<T> source, Func<T, bo
 public static IEnumerable<T> SkipWhile<T>(this IEnumerable<T> source, Func<T, int, bool> predicate);
 ```
 
-These methods both return a sequence consisting of a subset of the original sequence, in the same order.  `Take(n)` returns the first `n` elements from the source sequence and discards the rest; `Skip(n)` discards the first `n` elements and returns the rest.  Together, they can be used to extract arbitrary slices.  `TakeWhile()` returns a contiguous set of elements from the start of the sequence that match the given predicate, and discards the first element that does not match the predicate and all elements afterwards.  `SkipWhile()`, as you might expect, discards a contiguous set of elements from the start of the sequence that match the predicate, and returns the first element that does not match and all elements after it.  Both `TakeWhile()` and `SkipWhile()` also accept predicates with an index parameter.
+These methods both return a sequence consisting of a contiguous subset of the original sequence, in the same order.  `Take(n)` returns the first `n` elements from the source sequence and discards the rest; `Skip(n)` discards the first `n` elements and returns the rest.  Together, they can be used to extract arbitrary slices.  `TakeWhile()` returns a contiguous set of elements from the start of the sequence that match the given predicate, and discards the first element that does not match the predicate and all elements afterwards.  `SkipWhile()`, as you might expect, discards a contiguous set of elements from the start of the sequence that match the predicate, and returns the first element that does not match and all elements after it.  Both `TakeWhile()` and `SkipWhile()` also accept predicates with an index parameter.
+
+`x.Take(n)` is the equivalent of the range-based indexer operation `x[..n]`, and `x.Skip(n)` is the equivalent of the range-based indexer operation `x[n..]` on types that guarantee ordering of their elements.
 
 For the next group of methods, I have shown `int`-based signatures, but there are actually overloads for every numeric type.
 
@@ -2761,7 +2768,7 @@ public static double Average(this IEnumerable<int> source);
 public static double Average<T>(this IEnumerable<T> source, Func<T, int> selector);
 ```
 
-These methods carry out basic numeric summarising operations, either on a sequence of a numeric type, or on a sequence of any type when provided with a projection method to give the value to be used for the computation.  Note that the result of the `Average(IEnumerable<int>)` method is a `double`; all of the `Average()` overloads return `double` except for `Average(IEnumerable<float>)` which returns `float`.
+These methods carry out basic numeric aggregate operations, either on a sequence of a numeric type, or on a sequence of any type when provided with a projection method to give the value to be used for the computation for each element.  Note that the result of the `Average(IEnumerable<int>)` method is a `double`; all of the `Average()` overloads return `double` except for `Average(IEnumerable<float>)` which returns `float`.
 
 ```
 public static T Aggregate<T>(this IEnumerable<T> source, Func<T, T, T> func);
@@ -2773,7 +2780,7 @@ The `Aggregate()` methods are generalisations of routines such as `Sum()` which 
 
 ```
 List<int> values = LoadData();
-int sum = values.Aggregate((a, b) => a + b);
+int sum = values.Aggregate(static (a, b) => a + b);
 ```
 
 In the two-type-parameter version, the return type of the aggregate is different to the type of the source elements, but is the same type used for storing the intermediate value of the computation.  With this version, we have to provide an initial "seed" value for the intermediate value, and the lambda is applied to every element in the sequence in the same way, rather than the first two elements in the sequence being a special case.
@@ -2851,7 +2858,7 @@ public static IEnumerable<R> SelectMany<S, C, R>(this IEnumerable<S> source, Fun
 public static IEnumerable<R> SelectMany<S, C, R>(this IEnumerable<S> source, Func<S, int, IEnumerable<C>> collectionSelector, Func<S, C, R> resultSelector);
 ```
 
-The `SelectMany()` method is, like `Select()`, a form of projection operation.  In its two-type-parameter forms it projects each element of the sequence into its own sequence, then concatenates those sequences together to form the final output.  Here's an example:
+The `SelectMany()` method is, like `Select()`, a form of projection operation.  In its two-type-parameter forms it uses `selector` to project each element of the sequence into a new sequence, then concatenates those sequences together to form the final output.  Here's an example:
 
 ```
 // assume there is a class, Vertex
@@ -2875,7 +2882,7 @@ public static bool SequenceEqual<T>(this IEnumerable<T> first, IEnumerable<T> se
 public static bool SequenceEqual<T>(this IEnumerable<T> first, IEnumerable<T> second, IEqualityComparer<T> comparer);
 ```
 
-The `SequenceEqual()` method returns true if two sequences contain the same number of elements, and the elements at each position are equal.  The first overload uses the default equality comparer for the type, so the exact behaviour of the method will depend on the type and whether it implements the `IEquatable<T>` interface or overrides the `object.Equals()` method.  If it does not, and the type is a reference type, this method will only return true if the elements at each position in the sequence are the same individual instances of objects.  The second overload allows you to provide a custom comparer, to control exactly how the elements are compared.
+The `SequenceEqual()` method returns true if two sequences contain the same number of elements, and the elements at each position are equal.  The first overload uses the default equality comparer for the type, so the exact behaviour of the method will depend on the type and whether it implements the `IEquatable<T>` interface or overrides the `object.Equals()` method.  If it does not, and the type is a reference type, this method will only return true if the elements at each position in the sequence are the same individual instances of objects because it will compare the values of their references.  The second overload allows you to provide a custom comparer, to control exactly how the elements are compared.
 
 ```
 public static IEnumerable<T> Distinct<T>(this IEnumerable<T> source);
@@ -2883,7 +2890,6 @@ public static IEnumerable<T> Distinct<T>(this IEnumerable<T> source, IEqualityCo
 ```
 
 The `Distinct()` method returns the elements in the sequence, with any duplicates removed.  For the first overload the same caveats, as to what counts as a duplicate, apply as for the `SequenceEqual()` method: essentially, if the type does not define custom equatability code, objects will only be considered duplicate if they are the same instances.  Again, there is a second overload that allows a custom comparer to be provided.  You should not assume the order of elements output by this method; providers are not required to guarantee that the output will be in any specific order, or that the order will be related to the order of the source sequence in any particular way.
-
 
 ```
 public static IEnumerable<T> Union<T>(this IEnumerable<T> first, IEnumerable<T> second);
@@ -2907,22 +2913,22 @@ public static IEnumerable<R> GroupBy<S,K,E,R>(this IEnumerable<S> source, Func<S
 public static IEnumerable<R> GroupBy<S,K,E,R>(this IEnumerable<S> source, Func<S,K> keySelector, Func<S,R> elementSelector, Func<IEnumerable<R>,R> resultSelector, IEqualityComparer<K> comparer);
 ```
 
-Now we are getting down towards the more complex methods in LINQ, for grouping and (below) joining.  The `GroupBy()` method overloads handle grouping of a sequence.  Here, I have tried to order them from simplest to most complex, and I've used consistent naming for the type parameters: S for source type, K for key type, E for element type and R for result type.  Each overload is paired with a second which includes a key equality comparer, but I will gloss over those initially.
+Now we are getting down towards the more complex methods in LINQ, for grouping and (below) joining.  The `GroupBy()` method overloads handle grouping of a sequence.  Here, I have tried to order them from simplest to most complex, and I've used consistent naming for the type parameters: S for source type, K for key type, E for element type and R for result type.  Each overload is paired with a second which includes a key equality comparer, but I'll gloss over those initially.
 
-The simplest versions of `GroupBy()` return `IEnumerable<IGrouping<K,S>>`.  An `IGrouping<K,S>` is an extension of `IEnumerable<S>` which also includes a key value; in other words, these methods return a sequence of sequences, where each sequence at the lower level is identified by a key value.  The two-parameter overload takes a method which will project each element to a key, then returns the elements grouped by that key value.  In other words, the following code:
+The simplest versions of `GroupBy()` return `IEnumerable<IGrouping<K,S>>`.  An `IGrouping<K,S>` is an extension of `IEnumerable<S>` which also includes a key value; in other words, these methods return a sequence of sequences, where each "interior" sequence is identified by a key.  The two-parameter overload takes a method which will project each element to a key, then returns the elements grouped by that key value.  In other words, the following code:
 
 ```
 IEnumerable<Egg> eggs = LoadData();
 IEnumerable<IGrouping<string,Egg>> filedByColour = eggs.GroupBy(e => e.Colour); // assume Colour is a string
 ```
 
-will take the initial sequence of `Egg` objects and return a sequence of sequences, with each second-level sequence having the same `Colour` property.  The next overloads, which are of the loose form `GroupBy(source, keySelector, elementSelector)` work in the same way, but include an element selector method to project each element into a new form: it is similar to calling the first form of the method, then carrying out a `Select()` operation on each element in each grouping in the output.
+will take the initial sequence of `Egg` objects and return a sequence of sequences, with each second-level sequence having the same `Colour` property.  The next overloads, which are of the loose form `GroupBy(source, keySelector, elementSelector)` work in the same way, but include an element selector method to project each element into a new form: it is similar to calling the first form of the method, but carrying out a `Select()` operation on each element as it's put into its group.
 
-The next forms of the method have the loose form `GroupBy(source, keySelector, resultSelector)`.  The result selector method has the type `Func<K,IEnumerable<S>,R>`: its parameters are the group key and the sequence of elements in the group.  Instead of being turned into an `IGrouping` by the previous behaviour, each combination of key and subsequence can be turned into a different type of object.
+The next forms of the method have the loose form `GroupBy(source, keySelector, resultSelector)`.  Unlike the previous form the result selector here operates on the output groups, not their elements, and has the type `Func<K,IEnumerable<S>,R>`.  Its parameters are the group key and the sequence of elements in the group.  Instead of each group being output as an `IGrouping`, each combination of key and subsequence can be turned into a different type of object, so you can use this form to return aggregate-level data on a group rather than the group itself.
 
-The final forms combine the previous two.  The key selector method derives the key for each element; and the element selector projects each element into an intermediate form.  The elements are grouped, and the result selector is called once for each group to create the final output elements.
+The final forms combine the previous two.  The key selector method derives the key for each element; and the element selector projects each element into an intermediate form.  The elements are grouped, and the result selector is called for each group to create the final output elements.
 
-If a comparer parameter is provided, it is used to compare the values of the group keys at each step, to determine whether or not an element belongs to a given group, or is in its own group.
+If a comparer parameter is provided, it is used to compare the values of the group keys when grouping the elements of the input sequence, to determine whether an element belongs to an existing group, or is in its own group.
 
 ```
 public static IEnumerable<R> Join<U,N,K,R>(this IEnumerable<U> outer, IEnumerable<N> inner, Func<U,K> outerKeySelector, Func<N,K> innerKeySelector, Func<U,N,R> resultSelector);
@@ -2931,38 +2937,50 @@ public static IEnumerable<R> Join<U,N,K,R>(this IEnumerable<U> outer, IEnumerabl
 
 The `Join()` method is the equivalent of the SQL `INNER JOIN` statement.  It takes an "outer" sequence, an "inner" sequence", a key selector method for each sequence, and a result selector method.
 
-The operation of the method is to iterate over both sequences and apply the relevant key selector to each element of each sequence.  Then, for each pair of matching keys between the outer and inner sequences, the result selector method is called with the relevant elements, to generate an output element.  As for `GroupBy()`, the version with the comparer parameter uses that comparer to compare the derived keys for equality.
+The operation of the method is to iterate over both sequences and apply the relevant key selector to each element of each sequence.  Then, for each key in the outer sequence, elements with matching keys are found in the inner sequence, and result selector method is called for each of these pairs, to generate an output element.  As for `GroupBy()`, the version with the comparer parameter uses that comparer to compare the derived keys for equality.
 
-Unlike some of the other LINQ methods, `Join()` should preserve the order of its input.  The overall order of the output elements should match the order of the outer sequence, and within groups of output elements generated from the same outer element, the output order should match the order of the inner sequence.
+Unlike some of the other LINQ methods, `Join()` preserves the order of its input.  The overall order of the output elements should match the order of the outer sequence, and within groups of output elements generated from the same outer element, the output order should match the order of the inner sequence.
 
 As this is the equivalent of an SQL join, it might be worth comparing it with an equivalent SQL statement.  Imagine we have two tables, named Gender and Name, with the following data:
 
 | GenderID | DisplayValue |
-| --- | --- |
+| -------- | ------------ |
 | 0        | Other        |
 | 1        | F            |
 | 2        | M            |
-| 3        | Not stated   |
+| 3        | NB           |
+| 4        | Not stated   |
 
-| NameID | Name | GenderID |
-| --- | --- | --- |
-| 0      | Will | 3        |
-| 1      | Dave | 2        |
-| 2      | Gretchen | 1    |
-| 3      | Lavinia  | 1    |
-| 4      | Alex     | 0    |
-| 5      | Ezra     | 2    |
+| NameID | Name     | GenderID |
+| ------ | -------- | -------- |
+| 0      | Caitlin  | 1        |
+| 1      | Dave     | 2        |
+| 2      | Theo     | 3        |
+| 3      | Gretchen | 1        |
+| 4      | Lavinia  | 1        |
+| 5      | Alex     | 0        |
+| 6      | Ezra     | 2        |
 
-We can combine these tables using a SQL statement like `SELECT n.Name, g.DisplayValue AS Gender FROM Name n INNER JOIN Gender g ON n.GenderID = g.GenderID ORDER BY n.NameID, g.GenderID`.  This would produce the following output:
+We can combine these tables using a SQL statement like: 
 
-| Name | Gender |
-| --- | --- |
-| Will | Not stated |
-| Dave | M |
-| Gretchen | F |
-| Lavinia | F |
-| Alex | Other |
-| Ezra | M |
+```
+SELECT n.Name, g.DisplayValue AS Gender 
+FROM Name n 
+  INNER JOIN Gender g ON n.GenderID = g.GenderID 
+ORDER BY n.NameID, g.GenderID
+```  
+
+This would produce the following output:
+
+| Name     | Gender |
+| -------- | ------ |
+| Caitlin  | F      |
+| Dave     | M      |
+| Theo     | NB     |
+| Gretchen | F      |
+| Lavinia  | F      |
+| Alex     | Other  |
+| Ezra     | M      |
 
 The LINQ code to do this would be as follows:
 
@@ -2980,11 +2998,11 @@ public static IEnumerable<R> GroupJoin<U,N,K,R>(this IEnumerable<U> outer, IEnum
 public static IEnumerable<R> GroupJoin<U,N,K,R>(this IEnumerable<U> outer, IEnumerable<N> inner, Func<U,K> outerKeySelector, Func<N,K> innerKeySelector, Func<U,IEnumerable<N><R>> resultSelector, IEqualityComparer<K> comparer);
 ```
 
-The difference between the `Join()` and `GroupJoin()` methods is that whereas the result selector method of `Join()` is called once per matching pair of elements, the result selector method of `GroupJoin()` is called once per outer element, and is called once and once only for *every* outer element.  The first parameter to the result selector is the outer element; the second parameter is the sequence of inner elements that match that outer element, which may be an empty sequence.  This means that `GroupJoin()` can be used to implement either an inner or an outer join when used in combination with other LINQ methods.  To have it behave directly like a SQL `JOIN` you will generally have to pass the output of `GroupJoin()` to `SelectMany()` to flatten the results down to a single-dimension sequence; in a lot of contexts, though, its default behaviour is more flexible and useful.
+The difference between the `Join()` and `GroupJoin()` methods is that whereas the result selector method of `Join()` is called once per matching pair of elements, the result selector method of `GroupJoin()` is called once and once only for *every* outer element.  The first parameter to the result selector is the outer element; the second parameter is the sequence of inner elements that match that outer element, which may be an empty sequence.  This means that `GroupJoin()` can be used to implement either an inner or an outer join when used in combination with other LINQ methods.  To have it behave directly like a SQL `JOIN` you will generally have to pass the output of `GroupJoin()` to `SelectMany()` to flatten the results down to a single-dimension sequence; in a lot of contexts, though, its default behaviour is more flexible and useful.
 
 #### The other LINQ syntax
 
-The special LINQ syntax is called "query syntax".  Officially, Microsoft recommend that you "use query syntax whenever possible and method syntax whenever necessary".  However, in reality, the majority of C# developers probably prefer to use method syntax and generally do not use query syntax.  The output of an expression in query syntax is exactly the same as for method syntax (some sort of `IEnumerable<T>` implementation that encapsulates the query ready for execution when enumerated), and query syntax compiles to exactly the same CIL method calls as method syntax, so it really comes down to an issue of personal opinion.  Microsoft's official opinion is that query syntax is more readable; developers who are less confident using it than method syntax would understandably disagree.
+The special LINQ syntax is called "query syntax".  Officially, Microsoft recommend that you "use query syntax whenever possible and method syntax whenever necessary".  However, in reality, the majority of C# developers (that I've met) probably prefer to use method syntax and generally do not use query syntax.  The output of an expression in query syntax is exactly the same as for method syntax (some sort of `IEnumerable<T>` implementation that encapsulates the query ready for execution when enumerated), and query syntax compiles to exactly the same CIL method calls as method syntax, so it really comes down to an issue of personal taste and your opinions on readability.  Microsoft's official opinion is that query syntax is more readable; developers who are less confident using it than method syntax would understandably disagree.
 
 The first example we gave for the `Select()` method above was this:
 
@@ -3009,7 +3027,7 @@ var output = from x in values
     select x * 2;
 ```
 
-This is clearly the equivalent to:
+This is the equivalent to:
 
 ```
 var output = values.Where(x => x > 0).OrderBy(x => x).Select(x => x * 2);
@@ -3047,6 +3065,8 @@ If you really want to, you can mix the two types of syntax together:
 var output = (from y in values select (y + 1) * 2).Where(x => x > 0).OrderBy(x => x);
 ```
 
+In my opinion this is probably a bad idea unless you want to try to confuse people.
+
 You can also include a join clause in a query expression.  The equivalent of our example from above:
 
 ```
@@ -3068,21 +3088,21 @@ As shown above, the query expression syntax is rather more restrictive than meth
 
 ### String handling
 
-String handling is a basic function of almost all higher-level programming languages, so it is worth you knowing how to carry out some basic string operations in C#.
+String handling is a basic function of almost all higher-level programming languages, so it's worth you knowing how to carry out some basic string operations in C#.
 
-Strings are a fundamental type in .NET, although they behave as if they are a kind of object.  Indeed, in CIL itself "object" and "string" are given as the two fundamental reference data types, but also that "string" instances must always behave as if they inherit from "object" despite being a different fundamental type.  In C# `string` appears to be defined as a sealed class, but this really just reflects the underlying implementation.
+Strings are a fundamental type in .NET, although they behave as if they are a kind of object.  Indeed, in CIL itself "object" and "string" are given as the two fundamental reference data types, but with the rider that "string" instances must always behave as if they inherit from "object" despite being a different fundamental type at the bytecode.  In C# `string` appears to be defined as a sealed class which inherits from object, but this really just reflects the underlying implementation and is the best way to represent the CIL behaviour required by the CLR standards in C#.
 
-A fundamental tenet of C# strings is that they are always immutable.  All string operations and methods, therefore, will return a *different* instance to the one(s) being operated on, as you cannot mutate an existing string.  This naturally affects the style of the string API, but also is sometimes raised as a possible performance problem, because certain idioms such as constructing strings piece-by-piece or by repeated concatenation can then cause a large number of short-lived string objects to be created.
+A fundamental tenet of .NET strings is that they are always immutable.  All string operations and methods, therefore, will return a *different* instance to the one(s) being operated on, as you cannot mutate an existing string.  This naturally affects the style of the string API, but also is sometimes raised as a possible performance problem, because certain idioms such as constructing strings piece-by-piece or by repeated concatenation can cause a large number of short-lived strings to be created.
 
-Whether this is actually a problem in the real world depends very much on what you are doing.  Because of a perception that it may be a problem, there is a class, `System.Text.StringBuilder`, intended to be used in situations where you may want to do repeated concatenation.  It effectively behaves like a kind of mutable string buffer, with limited replacement ability; its contents can then be turned into a regular .NET string by calling `StringBuilder.ToString()`.  Because there is an overhead implied by using `StringBuilder`, the point at which use of `StringBuilder` becomes more efficient than direct string operations is very hard to predict and can vary hugely based on the exact algorithm used, the CLR implementation, the amount of data involved, and anything else which can affect the behaviour of the garbage collector.
+Whether this "performance problem" is actually a problem in the real world depends very much on what you are doing.  Because of a perception that it may be a problem, there is a class, `System.Text.StringBuilder`, intended to be used in situations where you may want to build up a string in multiple steps.  It effectively behaves like a kind of mutable string buffer, with limited replacement ability; its contents can then be turned into a regular .NET string by calling `StringBuilder.ToString()`.  Because there is an overhead implied by using `StringBuilder`, the point at which use of `StringBuilder` becomes more efficient than direct string operations is very hard to predict and can vary hugely based on the exact algorithm used, the CLR implementation, the amount of data involved, and anything else which can affect the behaviour of the garbage collector.
 
-The `string` class implements `IEnumerable<char>`, so if you find that the available string API does not easily lead to the operation required, you can use LINQ methods to filter and transform your string as a sequence of characters and turn it back into a string afterwards.  Annoyingly, there is no `string(IEnumerable<char>)` constructor; however, there is a constructor that takes `char[]`, so you can always use `IEnumerable<char>.ToArray()` to get around this.
+The `string` class implements `IEnumerable<char>`, so if you find that the available string API does not easily lead to the operation required, you can use LINQ methods to filter and transform your string as a sequence of characters and turn it back into a string afterwards.  Annoyingly, there is no `string(IEnumerable<char>)` constructor; however, there is a constructor that takes `char[]`, so you can get around this with the `IEnumerable<char>.ToArray()` method.
 
-The `string` class also implements an `int` parameter indexer of type `char`.  As each instance is immutable, it is naturally a read-only indexer, but can easily be used to access the character at a given position in the string.
+The `string` class implements an `int`-parameter indexer of type `char`.  As each instance is immutable, it's a read-only indexer, but can easily be used to access the character at a given position in the string.  Since C# 8 there is also an `Index`-parameter indexer and a range-based indexer of type `string`, which covers various situations that previously required string manipulation methods.  For example, the expression `myString[x..]` is equivalent to `myString.Substring(x)`.
 
-C# compiler implementations will generally de-duplicate string constants and literals in output assemblies.  This is done through a mechanism called the *intern pool*, which can be accessed at runtime, although doing so is not necessarily helpful.  Although there is no automatic deduplication of runtime-generated strings, it is not really productive to check to see if your string exists in the intern pool already: you can't check if it exists without constructing it anyway, and putting it into the pool will prevent it from being garbage-collected at all during the lifetime of the process.
+C# compiler implementations will generally de-duplicate string constants and literals in output assemblies.  This is done through a mechanism called the *intern pool*, which can be accessed at runtime, although doing so is not necessarily helpful.  Although there is no automatic deduplication of runtime-generated strings, it's not really productive to check to see if your string exists in the intern pool already: you can't check if it exists without constructing it anyway, and putting it into the pool will prevent it from being garbage-collected at all during the lifetime of the process.
 
-The `string` class has a predefined static field, `Empty`, to refer to the empty string.  You may often see references to `string.Empty` (or `String.Empty`) in code instead of the equivalent `""`.  In C# 1.0, using `string.Empty` was felt by a lot of developers to convey a minor performance improvement over `""`; however, any such improvement was likely to be minimal in practice, and the two are essentially synonyms.  A large number of developers still prefer to use `string.Empty` for readability or personal preference, but it is functionally equivalent for `""`.  If you are comparing a value against an empty string, it is better practice to consider how you want to handle null values and use `string.IsNullOrEmpty(val)` or `string.IsNullOrWhitespace(val)` if they give the semantics you need without requiring an additional null check.
+The `string` class has a predefined static field, `Empty`, to refer to the empty string.  You may often see references to `string.Empty` (or `String.Empty`) in code instead of the equivalent `""`.  In C# 1.0, using `string.Empty` was felt by a lot of developers to convey a minor performance improvement over `""` because the earliest compiler didn't have string constant deduplication; however, any such improvement was likely to be minimal in practice, and the two are essentially synonyms.  A large number of developers still prefer to use `string.Empty` for readability or personal preference, but it is functionally equivalent to `""`.  If you are comparing a value against an empty string, it is better practice to consider how you want to handle null values and white space values too and use `string.IsNullOrEmpty(val)` or `string.IsNullOrWhitespace(val)` if they give the semantics you need without requiring an additional null check.
 
 #### Composite format strings
 
@@ -3096,7 +3116,7 @@ The `format` parameter is referred to as a *composite format string*, and differ
 
 (To be very pedantic, because there are so many calls to `string.Format()` with a single argument following the format string, there is actually in this case a specific overload, `string.Format(string format, object arg0)`,  called to avoid the work involved in constructing an array and counting the number of parameters, but in operation it is functionally identical to the version given above).
 
-If there are multiple placeholders in the format string, they do not have to occur in numerical order, but it can be somewhat confusing if they do not.  Of course, if you are writing internationalised code with multiple translations of your strings, it can be impossible for the placeholders to be in the same order in every translation of some strings.  You can also reuse the same placeholder multiple times, as in `"There are {0} lines in the document, yes, {0} lines!"`.  This can come in useful if you want to format the same value in different ways, for example, use both the date part and the time part of a `DateTime` in different parts of your format string.
+If there are multiple placeholders in the format string, they do not have to occur in numerical order, but it can be somewhat confusing if they don't.  Of course, if you are writing internationalised code with multiple translations of your strings, it can be impossible for the placeholders to be in the same order in every translation of some strings.  You can also reuse the same placeholder multiple times, as in `"There are {0} lines in the document, yes, {0} lines!"`.  This can come in useful if you want to format the same value in different ways, for example, use both the date part and the time part of a `DateTime` in different parts of your format string.
 
 You can specify the minimum width of the interpolated string that replaces a placeholder by following the placeholder with a comma and an integer; this is called the *alignment component*.  If the alignment is positive and greater than the "natural" width of the value, spaces are added before the value to right-align it; if the alignment is negative, spaces are added after the value to left-align it.
 
@@ -3274,6 +3294,8 @@ The custom `DateTime` and `TimeSpan` format string specifiers generally each spe
 The `TimeSpan` class supports the `f`, `F`, `h`, `m` and `s` custom specifiers in the same way as `DateTime`, including all lengths, and also supports `d` to mean the number of days in the time period, padded up to eight digits (`dddddddd`).  It also supports the special characters `%` and `\` in the same way as described above.
  
 #### Regular expressions
+
+### Preprocessor Directives
 
 ### Events
 

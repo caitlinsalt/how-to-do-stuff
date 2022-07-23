@@ -3102,7 +3102,7 @@ The `string` class implements an `int`-parameter indexer of type `char`.  As eac
 
 C# compiler implementations will generally de-duplicate string constants and literals in output assemblies.  This is done through a mechanism called the *intern pool*, which can be accessed at runtime, although doing so is not necessarily helpful.  Although there is no automatic deduplication of runtime-generated strings, it's not really productive to check to see if your string exists in the intern pool already: you can't check if it exists without constructing it anyway, and putting it into the pool will prevent it from being garbage-collected at all during the lifetime of the process.
 
-The `string` class has a predefined static field, `Empty`, to refer to the empty string.  You may often see references to `string.Empty` (or `String.Empty`) in code instead of the equivalent `""`.  In C# 1.0, using `string.Empty` was felt by a lot of developers to convey a minor performance improvement over `""` because the earliest compiler didn't have string constant deduplication; however, any such improvement was likely to be minimal in practice, and the two are essentially synonyms.  A large number of developers still prefer to use `string.Empty` for readability or personal preference, but it is functionally equivalent to `""`.  If you are comparing a value against an empty string, it is better practice to consider how you want to handle null values and white space values too and use `string.IsNullOrEmpty(val)` or `string.IsNullOrWhitespace(val)` if they give the semantics you need without requiring an additional null check.
+The `string` class has a predefined static field, `Empty`, to refer to the empty string.  You may often see references to `string.Empty` (or `String.Empty`) in code instead of the equivalent `""`.  In C# 1.0, using `string.Empty` was felt by a lot of developers to convey a minor performance improvement over `""` because the earliest compiler didn't have string constant deduplication; however, any such improvement was likely to be minimal in practice, and the two are essentially synonyms.  A large number of developers still prefer to use `string.Empty` for readability or personal preference, but it is functionally equivalent to `""`, and a modern CLR implementation should use a singleton instance as its empty string.  If you are comparing a value against an empty string, it is better practice to consider how you want to handle null values and white space values too and use `string.IsNullOrEmpty(val)` or `string.IsNullOrWhitespace(val)` if they give the semantics you need without requiring an additional null check.
 
 #### Composite format strings
 
@@ -3140,48 +3140,54 @@ Incidentally, if you want to include a literal `{` or `}` character in your form
 
 There are other methods which accept composite format strings which follow the same standards as `string.Format()`.  For example, some overloads of the `Console.WriteLine()` and `TextWriter.WriteLine()` methods, which are used for writing strings to the console or generally to streams, support the use of format strings, and the  `StringBuilder` class mentioned above has `AppendFormat()`, for adding formatted text to its buffer.  Some external frameworks also support composite format strings, usually by calling `string.Format()` internally; for example the NLog logging framework supports the use of composite format strings for all of its methods.  In general, it is worth investigating to see if the objects you are using support passing composite format strings so that you can delegate that work to the library or framework code, rather than calling `string.Format()` yourself.  It can in some circumstances be more efficient.  For example, the NLog framework has various complex rules that can be set to determine where a given message should be logged to, or if it should be thrown away without being recorded.  In the latter case, the library can then avoid formatting the output string if it knows it is not going to use the output.  If you called `string.Format()` yourself before passing the result to the logger, you may be making a wasted call, but it would be very hard for you to be able to perform the optimisation yourself.
 
+Interpolated string literals of the form `$"..."` use exactly the same placeholder syntax as `string.Format()`, with the big difference that the first part of the place holder, instead of being just an index number, is an entire expression that is evaluated and converted into a string.  This can potentially cause even more issues for the parser, if it's combined with alignment and format information.  As mentioned above in the section on string interpolation, the parser will get confused if you use the `? :` operator in your expression without putting parentheses around it, because it will assume the colon marks the start of the format specifier.  Additionally, your alignment and format specifiers have to be constants.  If you want to set your alignment programmatically, I usually find the easiest way is to use an interpolated string as the format parameter to a `string.Format()` call.
+
 #### The main string API
 
-We have already mentioned that strings implement `IEnumerable<char>` and are indexed by integer.  They also, like arrays, have an integer `Length` property.  The most commonly-used methods in the `string` class are probably the following:
+We have already mentioned that strings implement `IEnumerable<char>` and are indexed by integer, by `System.Index` and by `System.Range`.  They also, like arrays, have an integer `Length` property.  The most commonly-used methods in the `string` class are probably the following:
 
 - `Concat()` concatenates an array of strings into one.
 - `CopyTo()` copies a slice of a string into a `char[]`.
 - `EndsWith()` determines if a string ends with a specific substring, and `StartsWith()` determines if it starts with a specific substring.
-- `IndexOf()` determines the point within the string where a specific character or substring occurs, if it does.  `LastIndexOf()` does the same, but starts looking from the end of the string.
+- `IndexOf()` determines the first point within the string where a specific character or substring occurs, if it does.  `LastIndexOf()` does the same, but starts looking from the end of the string.
 - `IsNullOrEmpty()` is static, and determines if a `string` reference is either null or the empty string, as discussed above.  `IsNullOrWhiteSpace()` is similar but returns true for strings that only contains white space characters.
-- `Join()` concatenates a sequence of strings, with a given separator between each element of the sequence.
+- `Join()` concatenates a sequence of strings, with a specified separator (which could be the empty string) between each element of the sequence.
 - `Remove()` returns a string with a slice removed.
 - `Replace()` returns a string with a given substring replaced by something else.
 - `Split()` splits a string into an array of strings, based on the position of one or more delimiters.
 - `Substring()` extracts a slice from a string.
-- `ToUpper()` and `ToLower()` return a string which contains equivalent characters all converted into upper or lower case respectively.
-- `Trim()` removes leading and trailing whitespace, or instances of a specific character: for example `"__eg__".Trim('_');` returns `"eg"`.  `TrimStart()` and `TrimEnd()` do the same at specific ends of the string.
+- `ToUpper()` and `ToLower()` return a string which contains equivalent characters all converted into upper or lower case respectively.  This is a culture-sensitive operation (see below).
+- `Trim()` removes leading and trailing whitespace, or instances of a specific character: for example `"__eg__".Trim('_');` returns `"eg"`.  `TrimStart()` and `TrimEnd()` do the same at just one end of the string.
 
 #### String cultures and encodings
 
-.NET has a built-in concept of the program's current locale, based usually on operating system settings.  This can have a large impact on string handling code.  Some string handling routines use the current locale by default, and this can result in bugs if code developed on one computer under the developer's locale is transferred to a computer set to a different locale.  To avoid this, many string operations have overloads which take a `System.Globalization.CultureInfo` object to specify which locale is to be used for the specific operation; this can be used to hard-code a specific geographical culture, or the special *invariant culture*.  The invariant culture is described as locale-agnostic but generally follows US English practices; however it can be used to ensure consistent behaviour when that is particularly important.  The Microsoft document on string handling best practice recommends always using overloads that allow you to specify the locale explicitly when it is possible to do so, even thought this may require you to do things such as use the `string.Equals()` method instead of the `==` operator.  To get the necessary `CultureInfo` object, you can use one of the following:
+.NET has a built-in concept of the program's current locale, based usually on operating system settings.  This can have a large impact on string handling code.  Some string handling routines use the current locale by default, and this can result in bugs if code developed on one computer under the developer's locale is transferred to a computer set to a different locale&mdash;for example when you take code you have tested on your local machine and start running it on a cloud-hosted server.  In my experience it is most often an issue when converting dates or numbers to strings, but don't assume those are the only places affected.
 
-- the static property `CultureInfo.InvariantCulture`, which allows you to specify the invariant culture.
-- the static property `CultureInfo.CurrentCulture`, which allows you to access to current system culture.
+To avoid locale-based problems, many string operations have overloads which take a `System.IFormatProvider` parameter, into which you can pass a `System.Globalization.CultureInfo` object to specify which locale is to be used for the specific operation.  This can be used to hard-code a specific geographical culture, or the special *invariant culture*.  The invariant culture is described as locale-agnostic but in reality has a strong bias towards US English practices; however it can be used to ensure consistent behaviour when consistency is more important than human-readability.  The Microsoft document on string handling best practice recommends always using overloads that allow you to specify the locale explicitly when it is possible to do so, even thought this may require you to do things such as use the `string.Equals()` method instead of the `==` operator, and turning on all code analysis rules will give you a warning when you could change your code to use a locale-aware overload.  To get the necessary `CultureInfo` object, you can use one of the following:
+
+- the static property `CultureInfo.InvariantCulture`, which is always the invariant culture.
+- the static property `CultureInfo.CurrentCulture`, which is the current culture for your process.  This normally starts out as the default culture of the user who started a process, but can be changed by a process as it runs.
 - the static property `CultureInfo.CurrentUICulture`, which can potentially be different to `CurrentCulture`.  It is the property always used to select translations for UI purposes.
-- as a last resort, you can manually construct a `CultureInfo` object by name, for example `new CultureInfo("cy-GB")`.
+- as a last resort, you can manually construct a `CultureInfo` object by name, for example `new CultureInfo("cy-GB")` to get the British Welsh locale.
 
-If you really need to, you can assign to `CultureInfo.CurrentCulture` to change the current culture&mdash;but the property is thread-specific and non-persistent, so doing so will only change the culture for the current thread until it terminates.  If you are not aware of this behaviour, this can cause strange problems further down the line.  There are circumstances in which code like this might be useful; for example, you may be generating reports for delivery to specific users who have requested particular locales to be used.
+I said the current culture can be changed at runtime: you can set the value of `CultureInfo.CurrentCulture` to a different `CultureInfo` object. However, this property is thread-specific and non-persistent. Therefore doing so will only change the culture for the current thread until it terminates.  If you are not aware of this behaviour, this can cause strange problems further down the line, particularly if you are using asynchronous code.  There are circumstances in which code like this might be useful, but in general you are safer just using culture-aware overload methods.
 
-Internally, .NET implementations should all use UTF-16 as their string encoding.  However, by default, stream input and output uses UTF-8, so the fact UTF-16 strings are used internally in memory is generally quite well-hidden.
+Internally, .NET implementations should all use UTF-16 as their string encoding.  However, by default, stream input and output uses UTF-8, and the fact UTF-16 strings are used internally in memory is generally quite well-hidden.
 
 String encodings themselves are accessed through the `System.Text.Encoding` class, which has a number of static properties to access commonly-used encodings.  The encodings accessible are:
 
-| Encoding | Property | Notes |
-| --- | --- | --- |
-| US ASCII | `Encoding.ASCII` | 7-bit support only |
-| UTF-7 | `Encoding.UTF7` | Not recommended unless you know why you need it. |
-| UTF-8 | `Encoding.UTF8` | The default encoding when not specified for many objects, particularly `StreamReader` and `StreamWriter` |
-| UTF-16 | `Encoding.Unicode` | Either byte order supported. |
-| UTF-32 | `Encoding.UTF32` | Either byte order supported. |
-| Other | `Encoding.GetEncoding(int cp)` | Loads the encoding for any system-supported code page, by code page number.  This is operating-system specific; few code pages are guaranteed to be supported by all systems. |
+| Encoding | Property                       | Notes                                                                                                  |
+| -------- | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| US ASCII | `Encoding.ASCII`               | 7-bit support only                                                                                     |
+| UTF-7    | `Encoding.UTF7`                | Not recommended unless you know why you need it.                                                       |
+| UTF-8    | `Encoding.UTF8`                | The default encoding when not specified for many types, particularly `StreamReader` and `StreamWriter` |
+| UTF-16   | `Encoding.Unicode`             | Either byte order supported.                                                                           |
+| UTF-32   | `Encoding.UTF32`               | Either byte order supported.                                                                           |
+| Other    | `Encoding.GetEncoding(int cp)` | Loads the encoding for any system-supported code page, by code page number.  This is operating-system specific; few code pages are guaranteed to be supported by all systems. |
 
-There is also a property, `Encoding.Default`, which theoretically specifies the default encoding for the system; however, the value of this is implementation-dependent.  On .NET Core it is guaranteed to be equivalent to `Encoding.UTF8`, but on .NET Framework running on Windows, it will be the system default code page encoding.
+If you want to ensure the widest variety of encodings are available, reference the NuGet package `System.Text.Encoding.CodePages`.  In modern versions of .NET, you are requireed to use this in order to access "code-page-based" encodings such as those used by Windows before it adopted Unicode, and those defined in the ISO 8859 series.
+
+There is also a property, `Encoding.Default`, which theoretically specifies the default encoding for the system; however, the value of this is implementation-dependent.  On .NET and .NET Core it is guaranteed to always be `Encoding.UTF8`, but on .NET Framework running on Windows, it will be the system default code page encoding.
 
 If you need to encode a string using a specific encoding, you can do it with `Encoding.GetBytes()` as follows:
 
@@ -3204,60 +3210,61 @@ To go the other way, use the `Encoding.GetString()` or `Encoding.GetChars()` met
 
 #### ToString() formats
 
-All objects in C# support the `ToString()` method, as it is a member of `object`.  The `object.ToString()` method itself is not *particularly* useful, because it just returns the fully-qualified specific type name of the instance, but overrides and overloads of `ToString()` do provide useful functionality.  Many key built-in types provide `ToString()` overloads which take a format string parameter, determining how exactly to carry out the conversion: particularly, numeric types; dates, times and timespans; GUIDs and enums.  These format strings are the same as the format string component of placeholders in composite format string&mdash;in other words, the part between the colon and the closing brace.
+All objects in C# support the `ToString()` method, as it is a member of `object`.  The `object.ToString()` method itself is not *particularly* useful, because it just returns the fully-qualified specific type name of the instance, but overrides and overloads of `ToString()` do provide useful functionality.  Many key built-in types implement `IFormattable`, which means they provide `ToString()` overloads which take a format string parameter, determining how exactly to carry out the conversion.  This interface is implemented by (among others) numeric types; dates, times and timespans; GUIDs and enums.  These format strings are the same as the format specifier component of placeholders in composite format string&mdash;in other words, the part between the colon and the closing brace.  Some format strings are locale-specific, and so the `IFormattable` interface also requires its implementers to provide a `ToString(string format, IFormatProvider provider)` overload so the caller can pass in a `CultureInfo` object.
 
-For most of the types that support `ToString(string format)`, there are two types of format string: a "standard format string" consisting of one or two characters, and a more complex "custom format string".  The exceptions are the `Guid` type and enum types, which each only support a small number of standard format strings.
+For most of the types that support `ToString(string format, IFormatProvider provider)`, there are two types of format string: a "standard format string" consisting of one or two characters, and a more complex "custom format string".  The exceptions are the `Guid` type and enum types, which each only support a small number of standard format strings.
 
-| Format string | GUID meaning | Enum meaning |
-| --- | --- | --- |
-| `B` | Digits separated by hyphens, surrounded by braces. | N/A |
-| `D` | Digits separated by hyphens, no surround. | Decimal integer value, without leading zeros. |
-| `F` | N/A | If the value is one or more enum values OR'd together, the names of those values separated by commas.  If is not, the integer value. |
-| `G` | N/A | The name of the value.  If the type has the `[Flags]` attribute this behaves like the `F` string.  If the value has no name, the integer value. |
-| `N` | Digits with no separation and no surround. | N/A |
-| `P` | Digits separated by hyphens, surrounded by parentheses. | N/A |
-| `X` | Sequence of hexadecimal values, surrounded by braces | The hexadecimal integer value, with leading zeros. |
+| Format string | GUID meaning                                            | Enum meaning                                       |
+| ------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| `B`           | Digits separated by hyphens, surrounded by braces.      | N/A                                                |
+| `D`           | Digits separated by hyphens, no surround.               | Decimal integer value, without leading zeros.      |
+| `F`           | N/A                                                     | If the value is one or more enum values OR'd together, the names of those values separated by commas.  If is not, the integer value. |
+| `G`           | N/A                                                     | The name of the value.  If the type has the `[Flags]` attribute this behaves like the `F` string.  If the value has no name, the integer value. |
+| `N`           | Digits with no separation and no surround.              | N/A                                                |
+| `P`           | Digits separated by hyphens, surrounded by parentheses. | N/A                                                |
+| `X`           | Sequence of hexadecimal values, surrounded by braces    | The hexadecimal integer value, with leading zeros. |
 
 The `X` format string for `Guid` values is hard to explain except by example.  If `N` would output a given GUID as `ddfe484b6a91457086a29d816dd394fc` then `X` would output it as `{0xddfe484b,0x6a91,0x4570,{0x86,0xa2,0x9d,0x81,0x6d,0xd3,0x94,0xfc}}`.
 
 Numeric standard format strings are of the form `Xnn`, where `X` is a single letter, the *format specifier* and `nn` is an optional integer between 0 and 99 inclusive called the *precision specifier* which controls the number of digits in the result string.  If the precision specifier is not given, each format specifier has its own default.  The standard format specifiers are as follows:
 
-| Format specifier | Name | Notes |
-| --- | --- | --- |
-| `C` | Currency | Very locale-specific.  Uses the locale's currency symbol, thousands separator, decimal separator, default precision specifier and way to represent negative numbers.  Some locales represent negative currency values by enclosing them in parentheses. |
-| `D` | Decimal | Only supported by integer types.  Optional negative sign.  No thousands separator.  The default precision specifier is the minimum number of digits required to display the number fully. |
-| `E` | Exponential | Default precision specifier 6.  Uses locale's decimal separator.  The case of the format specifier determines the case of the "e" in the output. |
-| `F` | Fixed point | No thousands separator.  Uses locale's decimal separator and default precision specifier. |
-| `G` | General | Whichever of `F` or `E` would give the shortest result string.  The default precision specifier depends on the input type. |
-| `N` | Number | Uses the locale's thousands separator, decimal separator and default precision specifier. |
-| `P` | Percent | Multiplies the value by 100, and appends a `%`.  Uses the locale's decimal separator and default precision specifier. |
-| `R` | Round trip | Should only be used for the `BigInteger` type.  With this type, can round-trip to string and back to `BigInteger` without losing accuracy or precision. |
-| `X` | Hexadecimal | Only supported by integer types.  Negative values are treated as if their two's complement binary representation, in the shortest data type in which they will fit, is cast to an unsigned value; for example -1 becomes `FF`.  The case of the format specifier indicates the case to be used for digits A to F. |
+| Format specifier | Name        | Notes |
+| ---------------- | ----------- | ----- |
+| `C`              | Currency    | Very locale-specific.  Uses the locale's currency symbol, thousands separator, decimal separator, default precision specifier and way to represent negative numbers.  Some locales represent negative currency values by enclosing them in parentheses. |
+| `D`              | Decimal     | Only supported by integer types.  Optional negative sign.  No thousands separator.  The default precision specifier is the minimum number of digits required to display the number fully. |
+| `E`              | Exponential | Default precision specifier 6.  Uses locale's decimal separator.  The case of the format specifier determines the case of the "e" in the output. |
+| `F`              | Fixed point | No thousands separator.  Uses locale's decimal separator and default precision specifier. |
+| `G`              | General     | Whichever of `F` or `E` would give the shortest result string.  The default precision specifier depends on the input type. |
+| `N`              | Number      | Uses the locale's thousands separator, decimal separator and default precision specifier. |
+| `P`              | Percent     | Multiplies the value by 100, and appends a `%`.  Uses the locale's decimal separator and default precision specifier. |
+| `R`              | Round trip  | Should only be used for the `System.Numerics.BigInteger` type.  With this type, can round-trip to string and back to `BigInteger` without losing accuracy or precision. |
+| `X`              | Hexadecimal | Only supported by integer types.  Negative values are treated as if their two's complement binary representation, in the shortest data type in which they will fit, is cast to an unsigned value; for example -1 becomes `FF`.  The case of the format specifier indicates the case to be used for digits A to F. |
 
-In general the above standard numeric format specifiers are case-insensitive, other than regarding the effects noted.
+In general the above standard numeric format specifiers are case-insensitive, aside from the effects noted for `E` and `X`.
 
-Custom numeric format specifiers have individual characters for each digit to be potentially output in the result; `0` is used for a position where a digit must be output even if there is no significant digit to go there, and `#` is used for a digit position that can be omitted if there is no significant digit to fill it. `.` and `,` represent the decimal and thousands separators respectively, but are replaced by their locale-specific versions on output.  You can also specify three patterns separated by `;` characters, to provide separate formatting for positive, negative and zero values.  Custom numeric format specifiers are somewhat more flexible than the standard format specifiers, and are the only way to output per mille values, but are required somewhat less often, so I do not intend to document them fully here.
+Custom numeric format specifiers have individual characters for each digit to be potentially output in the result; `0` is used for a position where a digit must be output even if there is no significant digit to go there, and `#` is used for a digit position that can be omitted if there is no significant digit to fill it. `.` and `,` represent the decimal and thousands separators respectively, but are replaced by their locale-specific versions on output.  You can also specify three patterns separated by `;` characters, to provide separate formatting for positive, negative and zero values.  Custom numeric format specifiers are somewhat more flexible than the standard format specifiers, and are the only way to output per mille values, but are required somewhat less often, so I'm not going to describe them completely here.
 
 The standard and custom `DateTime` and `Timespan` format strings are a little bit more involved, because many refer to extracting parts of the data, such as displaying only the date from a `DateTime`.  The standard format strings are single characters; the custom format strings are more complex, and unlike numeric format strings they tend to be case-sensitive.  The standard `DateTime` format strings are as follows:
 
 | Format specifier | Name | Example | Notes |
 | --- | --- | --- | --- |
 | `d` | Short date | 22/10/2019 | Locale-specific ordering of components. |
-| `D` | Long date | Tuesday, 22nd October 2019 | Locale-specific with words translated according to locale. | `f` | Full date, short time | Tuesday, 22nd October 2019 4:29 PM | Locale-specific with words translated according to locale.  Whether the time uses the 12- or 24-hour clock is also locale-specific. |
+| `D` | Long date | Tuesday, 22nd October 2019 | Locale-specific with words translated according to locale. 
+| `f` | Full date, short time | Tuesday, 22nd October 2019 4:29 PM | Locale-specific with words translated according to locale.  Whether the time uses the 12- or 24-hour clock is also locale-specific. |
 | `F` | Full date, long time | Tuesday, 22nd October 2019 4:29:16 PM | Locale-specific with words translated according to locale.  Whether the time uses the 12- or 24-hour clock is also locale-specific. |
-| `g` | General (ie short) date, short time | 22/10/2019 4:29 PM | Locale-specific order of date components and 12- or 24-hour clock. |
-| `G` | General (ie short) date, long time | 22/10/2019 4:29:16 PM | Locale-specific order of date components and 12- or 24-hour clock. |
+| `g` | General (ie short) date, short time | 22/10/2019 4:29 PM | Locale-specific order of date components and locale-specific 12- or 24-hour clock. |
+| `G` | General (ie short) date, long time | 22/10/2019 4:29:16 PM | Locale-specific order of date components and locale-specific 12- or 24-hour clock. |
 | `M` or `m` | Month and day | September 22 | Locale-specific order of components with words translated. |
-| `O` or `o` | Round-trip | 2019-10-22T16:29:16.0000000+01:00 | Not locale-specific. ISO8601 compliant. |
-| `R` or `r` | RFC1123 compliant | Tue, 22 Sep 2019 15:29:16 GMT | Not locale-specific. `GMT` is always output regardless of the data, so you must ensure the data is converted to UTC first. |
+| `O` or `o` | Round-trip | 2019-10-22T16:29:16.0000000+01:00 | Locale-independent. ISO8601 compliant. |
+| `R` or `r` | RFC1123 compliant | Tue, 22 Sep 2019 15:29:16 GMT | Locale-independent. The string `GMT` is always output regardless of the data, so you must ensure the data is converted to UTC or WET/GMT first. |
 | `s` | Sortable | 2019-10-22T16:29:16 | Not locale-specific.  ISO8601 compliant.  Does not output any timezone information (unlike `O`). |
 | `t` | Short time | 4:29 PM | Locale-specific 12- or 24-hour clock. |
 | `T` | Long time | 4:29:16 PM | Locale-specific 12- or 24-hour clock. |
-| `u` | Universal sortable | 2019-10-22T16:29:16Z | Not locale-specific.  ISO8601 compliant.  Like `R`, the timezone information is actually hardcoded, so you must ensure the data is converted to UTC first. |
+| `u` | Universal sortable | 2019-10-22T16:29:16Z | Locale-independent.  ISO8601 compliant.  Like `R`, the "Zulu" timezone information is actually hardcoded, so you must ensure the data is converted to UTC first. |
 | `U` | Universal full date, long time | Tuesday, 22nd October 2019 3:29:16 PM | Locale-specific with words translated.  12- or 24-hour clock also locale specific.  Unlike other forms, the data is automatically converted to UTC if possible before output. |
 | `Y` or `y` | Year and month | September, 2019 | Locale-specific with words translated. |
 
-Note that, in general, .NET does not have particularly good or consistent support for time zone handling, as is shown by the slightly scatty and inconsistent way in which `DateTime.ToString()` behaves in this regard, some formats assuming that the data they receive is always UTC, others converting it to UTC automatically.  The `DateTimeOffset` type gives you slightly better support as it includes an offset from UTC in the structure, but if you do need to ensure your code always behaves properly in a time-zone-aware way, you may want to consider using an external library such as [NodaTime](https://nodatime.org/).
+Note that, in general, .NET does not have particularly good or consistent support for time zone handling, as is shown by the slightly scatty and inconsistent way in which `DateTime.ToString()` behaves in this regard: some formats assuming that the data they receive is always UTC, others converting it to UTC automatically.  The `DateTimeOffset` type gives you slightly better support as it includes an offset from UTC in the structure, but if you do need to ensure your code always behaves properly in a time-zone-aware way, you may want to consider using an external library such as [NodaTime](https://nodatime.org/).
 
 The `TimeSpan` type only has a few standard format strings.
 
@@ -3274,21 +3281,21 @@ The custom `DateTime` and `TimeSpan` format string specifiers generally each spe
 | `d`, `dd` | Number of day in the month | `dd` is zero-padded to two digits. |
 | `ddd`, `dddd` | Name of day | Translated according to locale.  `ddd` is the standard abbreviated name. |
 | `f` to `ffffff` | Fractions of a second | Resolution from tenths (`f`) to ten-millionths, all zero-padded to the maximum number of digits. |
-| `F` to `FFFFFF` | Fractions of a second | Like `f`, but returns an empty string if `f` would return purely zeros. |
+| `F` to `FFFFFF` | Fractions of a second | Like `f`, but without zero-padding. |
 | `g` | Era, ie A.D. | You can't use `g` on its own as it would be interpreted as a standard format specifier, but `%g` would work (see `%` below).  Any number of consecutive `g` characters behaves the same as one.  Translated according to locale. |
 | `h`, `hh` | Hour (12-hour clock) | `hh` is zero-padded. |
 | `H`, `HH` | Hour (24-hour clock) | `HH` is zero-padded. |
 | `K` | Time zone infomation | For `DateTime` can either return "Z", the operating system timezone, or an empty string, depending on the `DateTime.Kind` property.  For `DateTimeOffset`, returns the same as `zzz`. |
 | `m`, `mm` | Minute | `mm` is zero-padded |
-| `M` to `MMMM` | Month | `M` and `MM` are numbers, `MMM` the abbreviated name, `MMMM` the full name.  The latter two are translated according to locale. |
+| `M` to `MMMM` | Month | `M` and `MM` are numbers (with the second form zero-padded), `MMM` the abbreviated name, `MMMM` the full name.  The latter two are translated according to locale. |
 | `s`, `ss` | Second | `ss` is zero-padded |
 | `t`, `tt` | AM or PM | Translated according to locale.  `t` returns the first character alone, so `A` or `P` in English locales. |
-| `y` to `yyyyy` | Year | `y` gives the final two digits of the year leading with zeros suppressed.  Other forms give that number of least-siginificant digits. |
+| `y` to `yyyyy` | Year | `y` gives the final two digits of the year with any leading zero suppressed.  Other forms give the same number of (least-siginificant) digits as the number of letters. |
 | `z` to `zzz` | Time zone offset | For `DateTime` returns the offset of the operating system timezone from UTC, regardless of the value passed in.  For `DateTimeInfo` it returns the offset from UTC; `z` gives hours, `zz` gives zero-padded hours and `zzz` gives hours and minutes. |
 | `:` | Time separator | Locale-specific. |
 | `/` | Date separator | Locale-specific. |
 | `"..."` or `'...'` | String literals | Any unrecognised characters are taken to be a string literal anyway, but quoting allows you to use format specifier characters in literals. |
-| `%` | Custom-format indicator | Specifies that the following character is a custom format specifier.  For use in situations where you have a single-character custom format which cannot be distinguished from a standard format, such as `g` or `h`, or where you have repeated characters which would otherwise be interpreted differently.  For example, you can get the result `10Oct` from the custom format `M%MMM`, whereas `MMMM` with the same data would give `October`. |
+| `%` | Custom-format indicator | Specifies that the following character is a custom format specifier.  For use in situations where you have a single-character custom format which cannot be distinguished from a standard format, such as `g` or `h`, or to remove ambiguity with groups of repeated characters.  For example, with the date October 10th, the custom formt `M%MMM` gives the result `10Oct` in an English-language locale, whereas `MMMM` gives `October`. |
 | `\` | Escape character | Escapes a single character.  `\h` is equivalent to `'h'`. |
 
 The `TimeSpan` class supports the `f`, `F`, `h`, `m` and `s` custom specifiers in the same way as `DateTime`, including all lengths, and also supports `d` to mean the number of days in the time period, padded up to eight digits (`dddddddd`).  It also supports the special characters `%` and `\` in the same way as described above.
